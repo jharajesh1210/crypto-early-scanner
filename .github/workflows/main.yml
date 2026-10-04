@@ -6,6 +6,9 @@ on:
   schedule:
     - cron: "*/15 * * * *"
 
+permissions:
+  contents: write
+
 jobs:
   run-scanner:
     runs-on: ubuntu-latest
@@ -33,3 +36,11 @@ jobs:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
         run: python crypto_early_alert.py
+
+      - name: Save Telegram alert state
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add telegram_early_alerted_signals.csv || true
+          git diff --cached --quiet || git commit -m "Update Telegram alert state"
+          git push
