@@ -24,6 +24,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install pandas numpy requests
 
+      - name: Test CoinDCX API
+        run: |
+          python -c "import requests; r=requests.get('https://api.coindcx.com/exchange/v1/markets', timeout=20); print('CoinDCX Status:', r.status_code); print('Markets found:', len(r.json())); r.raise_for_status()"
+
       - name: Run Crypto Early Scanner
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
