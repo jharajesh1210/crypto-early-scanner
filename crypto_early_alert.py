@@ -4,7 +4,6 @@ import os
 import numpy as np
 import time
 from datetime import datetime
-from signal_history_helper import save_signal_history
 from concurrent.futures import ThreadPoolExecutor, as_completed
 # ============================================================
 # SETTINGS
