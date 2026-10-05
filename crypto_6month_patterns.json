@@ -1,6 +1,6 @@
 {
   "created_utc": "2026-10-05T16:40:19.361494+00:00",
-  "updated_utc": "2026-10-05T23:16:32.264714+00:00",
+  "updated_utc": "2026-10-05T23:31:45.871550+00:00",
   "history_days": 180,
   "historical_interval": "15m",
   "spike_pct": 3.0,
@@ -2814,6 +2814,95 @@
           "scale": 0.648274
         }
       }
+    },
+    "TRBUSDT": {
+      "pair": "B-TRB_USDT",
+      "volume_24h_usdt": 20877797.46,
+      "trained_utc": "2026-10-05T23:29:33.903144+00:00",
+      "buy": {
+        "event_count": 168,
+        "rsi": {
+          "median": 50.841339,
+          "scale": 13.982588
+        },
+        "macd_hist_pct": {
+          "median": 0.00155,
+          "scale": 0.195675
+        },
+        "ema_gap_pct": {
+          "median": 0.415507,
+          "scale": 1.027757
+        },
+        "price_vs_bb_middle_pct": {
+          "median": -0.031455,
+          "scale": 1.430002
+        },
+        "bb_width_pct": {
+          "median": 4.028852,
+          "scale": 2.789523
+        },
+        "volume_ratio": {
+          "median": 0.897297,
+          "scale": 0.796865
+        },
+        "price_vs_poc_pct": {
+          "median": 0.325488,
+          "scale": 2.927576
+        },
+        "candle_move_pct": {
+          "median": -0.290161,
+          "scale": 0.608414
+        }
+      },
+      "sell": {
+        "event_count": 170,
+        "rsi": {
+          "median": 54.585941,
+          "scale": 12.816041
+        },
+        "macd_hist_pct": {
+          "median": 0.028251,
+          "scale": 0.181184
+        },
+        "ema_gap_pct": {
+          "median": 0.125772,
+          "scale": 1.005939
+        },
+        "price_vs_bb_middle_pct": {
+          "median": 0.484685,
+          "scale": 1.544695
+        },
+        "bb_width_pct": {
+          "median": 3.974302,
+          "scale": 2.49433
+        },
+        "volume_ratio": {
+          "median": 0.762848,
+          "scale": 0.652681
+        },
+        "price_vs_poc_pct": {
+          "median": 0.37129,
+          "scale": 3.155346
+        },
+        "candle_move_pct": {
+          "median": 0.343996,
+          "scale": 0.660749
+        }
+      }
+    },
+    "FDUSDUSDT": {
+      "pair": "B-FDUSD_USDT",
+      "volume_24h_usdt": 19403905.65,
+      "trained_utc": "2026-10-05T23:30:39.285832+00:00",
+      "buy": null,
+      "sell": null
+    },
+    "UUSDT": {
+      "pair": "B-U_USDT",
+      "volume_24h_usdt": 19336432.7,
+      "trained_utc": "2026-10-05T23:31:45.871515+00:00",
+      "buy": null,
+      "sell": null
     }
   }
 }
