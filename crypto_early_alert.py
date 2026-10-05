@@ -7,25 +7,9 @@ import numpy as np
 from datetime import datetime, timezone, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+
 # ============================================================
-# FINAL CRYPTO 5-MIN BUY / SELL CONFIRMATION SCANNER
-# CoinDCX Spot USDT
-#
-# Historical learning : 6 months, 15-minute candles
-# Live confirmation   : closed 5-minute candles
-# 5m candles          : created from CoinDCX 1m candles
-# Minimum 24h volume  : 5,000,000 USDT
-#
-# Indicators:
-# RSI(14)
-# MACD(12,26,9)
-# EMA20 / EMA50
-# Bollinger Bands(20,2)
-# Volume Ratio
-# Volume Profile / POC
-#
-# NO PRE-ALERT
-# DIRECT BUY / SELL CONFIRMATION ONLY
+# COINDCX 5-MIN BUY / SELL HISTORICAL SCANNER
 # ============================================================
 
 BASE_URL = "https://api.coindcx.com"
@@ -35,6 +19,7 @@ MAX_WORKERS = 8
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 CHAT_ID = os.getenv("CHAT_ID", "")
+
 TELEGRAM_ENABLED = True
 
 MODEL_FILE = "crypto_6month_patterns.json"
@@ -43,21 +28,14 @@ OUTPUT_FILE = "crypto_5m_signals.csv"
 
 HISTORY_DAYS = 180
 
-# Historical spike definition:
-# Price moves at least this much during next 8 x 15m candles = 2 hours
 HIST_FORWARD_BARS = 8
 HIST_SPIKE_PCT = 3.0
 
-# Require enough historical examples before trusting pattern
 MIN_HISTORICAL_EVENTS = 5
-
-# Similarity threshold
 MIN_MATCH_SCORE = 70.0
 
-# Rebuild historical model after this many hours
 MODEL_REFRESH_HOURS = 24
 
-# Avoid alerts on very large already-extended 5m candles
 MAX_CURRENT_CANDLE_MOVE = 2.5
 
 
@@ -66,15 +44,20 @@ MAX_CURRENT_CANDLE_MOVE = 2.5
 # ============================================================
 
 def send_telegram(message):
+
     if not TELEGRAM_ENABLED:
         return False
 
     if not BOT_TOKEN or not CHAT_ID:
-        print("Telegram secrets BOT_TOKEN / CHAT_ID not found.")
+        print("Telegram BOT_TOKEN / CHAT_ID missing.")
         return False
 
     try:
-        url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+
+        url = (
+            f"https://api.telegram.org/"
+            f"bot{BOT_TOKEN}/sendMessage"
+        )
 
         r = requests.post(
             url,
@@ -89,116 +72,234 @@ def send_telegram(message):
             print("Telegram alert sent.")
             return True
 
-        print("Telegram error:", r.text[:300])
+        print(
+            "Telegram error:",
+            r.text[:300]
+        )
 
     except Exception as e:
-        print("Telegram exception:", e)
+
+        print(
+            "Telegram exception:",
+            e
+        )
 
     return False
 
 
 # ============================================================
-# GET COINDCX USDT MARKETS WITH MINIMUM $5M 24H VOLUME
+# COINDCX USDT MARKETS
+# MINIMUM $5 MILLION 24H VOLUME
 # ============================================================
 
 def get_symbols():
 
+    print(
+        "Downloading CoinDCX market "
+        "details and 24H ticker..."
+    )
+
     try:
+
         market_res = requests.get(
             f"{BASE_URL}/exchange/v1/markets_details",
             timeout=30
         )
+
         market_res.raise_for_status()
+
         markets = market_res.json()
 
         ticker_res = requests.get(
             f"{BASE_URL}/exchange/ticker",
             timeout=30
         )
+
         ticker_res.raise_for_status()
+
         tickers = ticker_res.json()
 
     except Exception as e:
-        print("Market API error:", e)
+
+        print(
+            "Market/Ticker API error:",
+            e
+        )
+
         return []
+
+    # --------------------------------------------------------
+    # Ticker mapping
+    #
+    # ticker:
+    # market = BTCUSDT
+    #
+    # markets_details:
+    # coindcx_name = BTCUSDT
+    # pair = B-BTC_USDT
+    # --------------------------------------------------------
 
     ticker_map = {}
 
-    for x in tickers:
-        try:
-            market = str(x.get("market") or "")
-            volume = float(x.get("volume") or 0)
-            last_price = float(x.get("last_price") or 0)
+    for t in tickers:
 
-            ticker_map[market] = {
-                "quote_volume": volume * last_price,
-                "last_price": last_price
+        try:
+
+            market_name = str(
+                t.get("market") or ""
+            ).upper().strip()
+
+            volume = float(
+                t.get("volume") or 0
+            )
+
+            last_price = float(
+                t.get("last_price") or 0
+            )
+
+            if not market_name:
+                continue
+
+            if last_price <= 0:
+                continue
+
+            # approximate 24h turnover in USDT
+            quote_volume_usdt = (
+                volume * last_price
+            )
+
+            ticker_map[market_name] = {
+                "volume": volume,
+                "last_price": last_price,
+                "quote_volume_usdt":
+                    quote_volume_usdt
             }
 
         except Exception:
             continue
 
+    print(
+        "Ticker markets received:",
+        len(ticker_map)
+    )
+
     result = []
     seen = set()
 
-    for x in markets:
+    for m in markets:
 
         try:
-            status = str(x.get("status", "")).lower()
+
+            status = str(
+                m.get("status") or ""
+            ).lower().strip()
 
             base_currency = str(
-                x.get("base_currency_short_name", "")
-            ).upper()
+                m.get(
+                    "base_currency_short_name"
+                ) or ""
+            ).upper().strip()
 
             symbol = str(
-                x.get("coindcx_name") or x.get("symbol") or ""
-            ).upper()
+                m.get("coindcx_name")
+                or
+                m.get("symbol")
+                or ""
+            ).upper().strip()
 
-            pair = str(x.get("pair") or "")
+            pair = str(
+                m.get("pair") or ""
+            ).strip()
 
             if status != "active":
                 continue
 
+            # CoinDCX USDT markets
             if base_currency != "USDT":
                 continue
 
-            if not symbol or not pair:
+            if not symbol:
                 continue
 
-            volume_24h = ticker_map.get(
-                pair, {}
-            ).get("quote_volume", 0)
-
-            if volume_24h < MIN_24H_VOLUME:
+            if not pair:
                 continue
 
-            if (symbol, pair) in seen:
+            ticker = ticker_map.get(
+                symbol
+            )
+
+            if ticker is None:
                 continue
 
-            seen.add((symbol, pair))
+            volume_24h_usdt = float(
+                ticker[
+                    "quote_volume_usdt"
+                ]
+            )
+
+            if (
+                volume_24h_usdt
+                <
+                MIN_24H_VOLUME
+            ):
+                continue
+
+            if symbol in seen:
+                continue
+
+            seen.add(symbol)
 
             result.append({
                 "symbol": symbol,
                 "pair": pair,
-                "volume_24h": volume_24h
+                "volume_24h":
+                    volume_24h_usdt
             })
 
         except Exception:
             continue
 
     result.sort(
-        key=lambda x: x["volume_24h"],
+        key=lambda x:
+            x["volume_24h"],
         reverse=True
     )
+
+    print(
+        "USDT markets with >= "
+        "$5M 24H volume:",
+        len(result)
+    )
+
+    print(
+        "\nTop qualifying markets:"
+    )
+
+    for x in result[:10]:
+
+        print(
+            x["symbol"],
+            "| Pair:",
+            x["pair"],
+            "| Volume: $"
+            +
+            f"{x['volume_24h']/1_000_000:.2f}M"
+        )
 
     return result
 
 
 # ============================================================
-# CANDLE DOWNLOAD
+# DOWNLOAD CANDLES
 # ============================================================
 
-def request_candles(pair, interval, start_ms=None, end_ms=None, limit=1000):
+def request_candles(
+    pair,
+    interval,
+    start_ms=None,
+    end_ms=None,
+    limit=1000
+):
 
     params = {
         "pair": pair,
@@ -207,10 +308,16 @@ def request_candles(pair, interval, start_ms=None, end_ms=None, limit=1000):
     }
 
     if start_ms is not None:
-        params["startTime"] = int(start_ms)
+
+        params["startTime"] = int(
+            start_ms
+        )
 
     if end_ms is not None:
-        params["endTime"] = int(end_ms)
+
+        params["endTime"] = int(
+            end_ms
+        )
 
     try:
 
@@ -225,7 +332,10 @@ def request_candles(pair, interval, start_ms=None, end_ms=None, limit=1000):
 
         data = r.json()
 
-        if not isinstance(data, list):
+        if not isinstance(
+            data,
+            list
+        ):
             return None
 
         if len(data) == 0:
@@ -242,10 +352,14 @@ def request_candles(pair, interval, start_ms=None, end_ms=None, limit=1000):
             "time"
         ]
 
-        if not all(x in df.columns for x in required):
+        if not all(
+            x in df.columns
+            for x in required
+        ):
             return None
 
         for c in required:
+
             df[c] = pd.to_numeric(
                 df[c],
                 errors="coerce"
@@ -253,7 +367,9 @@ def request_candles(pair, interval, start_ms=None, end_ms=None, limit=1000):
 
         df = (
             df
-            .dropna(subset=required)
+            .dropna(
+                subset=required
+            )
             .sort_values("time")
             .drop_duplicates("time")
             .reset_index(drop=True)
@@ -271,18 +387,37 @@ def request_candles(pair, interval, start_ms=None, end_ms=None, limit=1000):
 
 def get_six_month_history(pair):
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(
+        timezone.utc
+    )
 
-    end_ms = int(now.timestamp() * 1000)
+    end_ms = int(
+        now.timestamp()
+        * 1000
+    )
 
-    start_dt = now - timedelta(days=HISTORY_DAYS)
+    start_dt = (
+        now
+        -
+        timedelta(
+            days=HISTORY_DAYS
+        )
+    )
 
-    start_ms = int(start_dt.timestamp() * 1000)
+    start_ms = int(
+        start_dt.timestamp()
+        * 1000
+    )
 
     all_frames = []
 
     # 1000 x 15-minute candles
-    chunk_ms = 1000 * 15 * 60 * 1000
+    chunk_ms = (
+        1000
+        * 15
+        * 60
+        * 1000
+    )
 
     cursor = start_ms
 
@@ -294,17 +429,26 @@ def get_six_month_history(pair):
         )
 
         df = request_candles(
-            pair,
-            "15m",
-            cursor,
-            chunk_end,
-            1000
+            pair=pair,
+            interval="15m",
+            start_ms=cursor,
+            end_ms=chunk_end,
+            limit=1000
         )
 
-        if df is not None and not df.empty:
-            all_frames.append(df)
+        if (
+            df is not None
+            and
+            not df.empty
+        ):
 
-        cursor = chunk_end + 1
+            all_frames.append(
+                df
+            )
+
+        cursor = (
+            chunk_end + 1
+        )
 
         time.sleep(0.05)
 
@@ -327,18 +471,21 @@ def get_six_month_history(pair):
 
 
 # ============================================================
-# GET CLOSED 5-MINUTE CANDLES FROM 1-MINUTE DATA
+# CREATE CLOSED 5-MINUTE CANDLES FROM 1-MINUTE DATA
 # ============================================================
 
 def get_live_5m(pair):
 
     df = request_candles(
-        pair,
-        "1m",
+        pair=pair,
+        interval="1m",
         limit=300
     )
 
-    if df is None or len(df) < 100:
+    if df is None:
+        return None
+
+    if len(df) < 100:
         return None
 
     df["datetime"] = pd.to_datetime(
@@ -347,7 +494,9 @@ def get_live_5m(pair):
         utc=True
     )
 
-    df = df.set_index("datetime")
+    df = df.set_index(
+        "datetime"
+    )
 
     five = df.resample(
         "5min",
@@ -361,38 +510,60 @@ def get_live_5m(pair):
         "volume": "sum"
     })
 
-    five = five.dropna().reset_index()
+    five = (
+        five
+        .dropna()
+        .reset_index()
+    )
 
-    # Remove current incomplete 5-minute candle
-    now = pd.Timestamp.now(tz="UTC")
+    now = pd.Timestamp.now(
+        tz="UTC"
+    )
 
-    current_bucket = now.floor("5min")
+    current_bucket = (
+        now.floor("5min")
+    )
 
+    # only completed candles
     five = five[
-        five["datetime"] < current_bucket
+        five["datetime"]
+        <
+        current_bucket
     ].copy()
 
     if len(five) < 55:
         return None
 
     five["time"] = (
-        five["datetime"].astype("int64") // 10**6
+        five["datetime"]
+        .astype("int64")
+        //
+        10**6
     )
 
-    return five.reset_index(drop=True)
+    return five.reset_index(
+        drop=True
+    )
 
 
 # ============================================================
-# INDICATORS
+# RSI
 # ============================================================
 
-def calculate_rsi(close, period=14):
+def calculate_rsi(
+    close,
+    period=14
+):
 
     delta = close.diff()
 
-    gain = delta.clip(lower=0)
+    gain = delta.clip(
+        lower=0
+    )
 
-    loss = -delta.clip(upper=0)
+    loss = -delta.clip(
+        upper=0
+    )
 
     avg_gain = gain.ewm(
         alpha=1 / period,
@@ -404,82 +575,133 @@ def calculate_rsi(close, period=14):
         adjust=False
     ).mean()
 
-    rs = avg_gain / avg_loss.replace(
-        0,
-        np.nan
+    rs = (
+        avg_gain
+        /
+        avg_loss.replace(
+            0,
+            np.nan
+        )
     )
 
-    return 100 - (100 / (1 + rs))
+    return (
+        100
+        -
+        (
+            100
+            /
+            (1 + rs)
+        )
+    )
 
+
+# ============================================================
+# TECHNICAL INDICATORS
+# ============================================================
 
 def add_indicators(df):
 
     df = df.copy()
 
-    df["EMA20"] = df["close"].ewm(
-        span=20,
-        adjust=False
-    ).mean()
+    # EMA
+    df["EMA20"] = (
+        df["close"]
+        .ewm(
+            span=20,
+            adjust=False
+        )
+        .mean()
+    )
 
-    df["EMA50"] = df["close"].ewm(
-        span=50,
-        adjust=False
-    ).mean()
+    df["EMA50"] = (
+        df["close"]
+        .ewm(
+            span=50,
+            adjust=False
+        )
+        .mean()
+    )
 
+    # RSI
     df["RSI14"] = calculate_rsi(
         df["close"],
         14
     )
 
-    ema12 = df["close"].ewm(
-        span=12,
-        adjust=False
-    ).mean()
+    # MACD
+    ema12 = (
+        df["close"]
+        .ewm(
+            span=12,
+            adjust=False
+        )
+        .mean()
+    )
 
-    ema26 = df["close"].ewm(
-        span=26,
-        adjust=False
-    ).mean()
+    ema26 = (
+        df["close"]
+        .ewm(
+            span=26,
+            adjust=False
+        )
+        .mean()
+    )
 
-    df["MACD"] = ema12 - ema26
+    df["MACD"] = (
+        ema12 - ema26
+    )
 
-    df["MACD_SIGNAL"] = df["MACD"].ewm(
-        span=9,
-        adjust=False
-    ).mean()
+    df["MACD_SIGNAL"] = (
+        df["MACD"]
+        .ewm(
+            span=9,
+            adjust=False
+        )
+        .mean()
+    )
 
     df["MACD_HIST"] = (
-        df["MACD"] -
+        df["MACD"]
+        -
         df["MACD_SIGNAL"]
     )
 
+    # Bollinger Bands
     df["BB_MIDDLE"] = (
         df["close"]
         .rolling(20)
         .mean()
     )
 
-    std = (
+    bb_std = (
         df["close"]
         .rolling(20)
         .std()
     )
 
     df["BB_UPPER"] = (
-        df["BB_MIDDLE"] +
-        2 * std
+        df["BB_MIDDLE"]
+        +
+        2 * bb_std
     )
 
     df["BB_LOWER"] = (
-        df["BB_MIDDLE"] -
-        2 * std
+        df["BB_MIDDLE"]
+        -
+        2 * bb_std
     )
 
     df["BB_WIDTH"] = (
-        (df["BB_UPPER"] - df["BB_LOWER"])
-        / df["BB_MIDDLE"]
+        (
+            df["BB_UPPER"]
+            -
+            df["BB_LOWER"]
+        )
+        /
+        df["BB_MIDDLE"]
     )
 
+    # Volume
     df["VOLUME_AVG20"] = (
         df["volume"]
         .rolling(20)
@@ -487,7 +709,8 @@ def add_indicators(df):
     )
 
     df["VOLUME_RATIO"] = (
-        df["volume"] /
+        df["volume"]
+        /
         df["VOLUME_AVG20"]
     )
 
@@ -498,13 +721,24 @@ def add_indicators(df):
 # VOLUME PROFILE / POC
 # ============================================================
 
-def calculate_poc(df, bins=40):
+def calculate_poc(
+    df,
+    bins=40
+):
 
-    if df is None or len(df) < 20:
+    if df is None:
         return np.nan
 
-    low = float(df["low"].min())
-    high = float(df["high"].max())
+    if len(df) < 20:
+        return np.nan
+
+    low = float(
+        df["low"].min()
+    )
+
+    high = float(
+        df["high"].max()
+    )
 
     if not np.isfinite(low):
         return np.nan
@@ -521,56 +755,95 @@ def calculate_poc(df, bins=40):
         bins + 1
     )
 
-    profile = np.zeros(bins)
+    profile = np.zeros(
+        bins
+    )
 
     for _, candle in df.iterrows():
 
-        candle_low = candle["low"]
-        candle_high = candle["high"]
-        volume = candle["volume"]
+        candle_low = float(
+            candle["low"]
+        )
 
-        if candle_high <= candle_low:
+        candle_high = float(
+            candle["high"]
+        )
+
+        volume = float(
+            candle["volume"]
+        )
+
+        if (
+            candle_high
+            <=
+            candle_low
+        ):
             continue
 
         for i in range(bins):
 
             overlap = max(
                 0,
-                min(candle_high, edges[i + 1])
+                min(
+                    candle_high,
+                    edges[i + 1]
+                )
                 -
-                max(candle_low, edges[i])
+                max(
+                    candle_low,
+                    edges[i]
+                )
             )
 
             if overlap > 0:
 
                 profile[i] += (
-                    volume *
-                    overlap /
-                    (candle_high - candle_low)
+                    volume
+                    *
+                    overlap
+                    /
+                    (
+                        candle_high
+                        -
+                        candle_low
+                    )
                 )
 
     if profile.sum() <= 0:
         return np.nan
 
-    idx = int(np.argmax(profile))
+    idx = int(
+        np.argmax(
+            profile
+        )
+    )
 
-    return (
-        edges[idx] +
+    poc = (
+        edges[idx]
+        +
         edges[idx + 1]
     ) / 2
+
+    return float(poc)
 
 
 # ============================================================
 # FEATURE EXTRACTION
 # ============================================================
 
-def get_features(df, index):
+def get_features(
+    df,
+    index
+):
 
     if index < 50:
         return None
 
     row = df.iloc[index]
-    prev = df.iloc[index - 1]
+
+    prev = df.iloc[
+        index - 1
+    ]
 
     poc_start = max(
         0,
@@ -578,77 +851,145 @@ def get_features(df, index):
     )
 
     poc = calculate_poc(
-        df.iloc[poc_start:index + 1]
+        df.iloc[
+            poc_start:
+            index + 1
+        ]
     )
 
     if not np.isfinite(poc):
         return None
 
-    if not np.isfinite(row["RSI14"]):
+    if not np.isfinite(
+        row["RSI14"]
+    ):
         return None
 
-    if not np.isfinite(row["VOLUME_RATIO"]):
+    if not np.isfinite(
+        row["VOLUME_RATIO"]
+    ):
         return None
 
-    price = float(row["close"])
+    price = float(
+        row["close"]
+    )
+
+    open_price = float(
+        row["open"]
+    )
 
     if price <= 0:
         return None
 
+    if open_price <= 0:
+        return None
+
     candle_move = (
-        (row["close"] - row["open"])
-        / row["open"]
-        * 100
+        (
+            price
+            -
+            open_price
+        )
+        /
+        open_price
+        *
+        100
+    )
+
+    macd_rising = (
+        1.0
+        if
+        row["MACD_HIST"]
+        >
+        prev["MACD_HIST"]
+        else
+        0.0
     )
 
     return {
-        "rsi": float(row["RSI14"]),
+
+        "rsi":
+            float(
+                row["RSI14"]
+            ),
 
         "macd_hist_pct":
-            float(row["MACD_HIST"])
-            / price
-            * 100,
+            (
+                float(
+                    row["MACD_HIST"]
+                )
+                /
+                price
+                *
+                100
+            ),
 
         "macd_rising":
-            1.0 if (
-                row["MACD_HIST"] >
-                prev["MACD_HIST"]
-            ) else 0.0,
+            macd_rising,
 
         "ema_gap_pct":
             (
-                float(row["EMA20"])
-                -
-                float(row["EMA50"])
-            )
-            / price
-            * 100,
+                (
+                    float(
+                        row["EMA20"]
+                    )
+                    -
+                    float(
+                        row["EMA50"]
+                    )
+                )
+                /
+                price
+                *
+                100
+            ),
 
         "price_vs_bb_pct":
             (
+                (
+                    price
+                    -
+                    float(
+                        row["BB_MIDDLE"]
+                    )
+                )
+                /
                 price
-                -
-                float(row["BB_MIDDLE"])
-            )
-            / price
-            * 100,
+                *
+                100
+            ),
 
         "bb_width_pct":
-            float(row["BB_WIDTH"])
-            * 100,
+            (
+                float(
+                    row["BB_WIDTH"]
+                )
+                *
+                100
+            ),
 
         "volume_ratio":
-            float(row["VOLUME_RATIO"]),
+            float(
+                row["VOLUME_RATIO"]
+            ),
 
         "price_vs_poc_pct":
             (
-                price - poc
-            )
-            / poc
-            * 100,
+                (
+                    price
+                    -
+                    poc
+                )
+                /
+                poc
+                *
+                100
+            ),
 
         "candle_move_pct":
-            float(candle_move),
+            float(
+                candle_move
+            ),
 
         "poc":
             float(poc)
@@ -656,24 +997,33 @@ def get_features(df, index):
 
 
 # ============================================================
-# FIND HISTORICAL SPIKE / DROP STARTS
+# HISTORICAL SPIKE / DROP EVENTS
 # ============================================================
 
 def historical_events(df):
 
-    df = add_indicators(df)
+    df = add_indicators(
+        df
+    )
 
     buy_events = []
     sell_events = []
 
-    last_event_index = -999
+    last_buy_index = -999
+    last_sell_index = -999
 
-    end = len(df) - HIST_FORWARD_BARS
+    end = (
+        len(df)
+        -
+        HIST_FORWARD_BARS
+        -
+        1
+    )
 
-    for i in range(55, end):
-
-        if i - last_event_index < HIST_FORWARD_BARS:
-            continue
+    for i in range(
+        55,
+        end
+    ):
 
         current_price = float(
             df.iloc[i]["close"]
@@ -687,6 +1037,9 @@ def historical_events(df):
             i + 1 + HIST_FORWARD_BARS
         ]
 
+        if future.empty:
+            continue
+
         future_high = float(
             future["high"].max()
         )
@@ -696,15 +1049,27 @@ def historical_events(df):
         )
 
         future_up = (
-            (future_high - current_price)
-            / current_price
-            * 100
+            (
+                future_high
+                -
+                current_price
+            )
+            /
+            current_price
+            *
+            100
         )
 
         future_down = (
-            (future_low - current_price)
-            / current_price
-            * 100
+            (
+                future_low
+                -
+                current_price
+            )
+            /
+            current_price
+            *
+            100
         )
 
         feat = get_features(
@@ -715,35 +1080,72 @@ def historical_events(df):
         if feat is None:
             continue
 
-        # BUY spike-start
-        if future_up >= HIST_SPIKE_PCT:
+        # BUY event
+        if (
+            future_up
+            >=
+            HIST_SPIKE_PCT
+        ):
 
-            # Avoid learning candle after move is already huge
-            if feat["candle_move_pct"] <= 2.5:
+            if (
+                i - last_buy_index
+                >=
+                HIST_FORWARD_BARS
+            ):
 
-                buy_events.append(feat)
+                if (
+                    feat[
+                        "candle_move_pct"
+                    ]
+                    <=
+                    MAX_CURRENT_CANDLE_MOVE
+                ):
 
-                last_event_index = i
+                    buy_events.append(
+                        feat
+                    )
 
-                continue
+                    last_buy_index = i
 
-        # SELL drop-start
-        if future_down <= -HIST_SPIKE_PCT:
+        # SELL event
+        if (
+            future_down
+            <=
+            -HIST_SPIKE_PCT
+        ):
 
-            if feat["candle_move_pct"] >= -2.5:
+            if (
+                i - last_sell_index
+                >=
+                HIST_FORWARD_BARS
+            ):
 
-                sell_events.append(feat)
+                if (
+                    feat[
+                        "candle_move_pct"
+                    ]
+                    >=
+                    -MAX_CURRENT_CANDLE_MOVE
+                ):
 
-                last_event_index = i
+                    sell_events.append(
+                        feat
+                    )
 
-    return buy_events, sell_events
+                    last_sell_index = i
+
+    return (
+        buy_events,
+        sell_events
+    )
 
 
 # ============================================================
-# BUILD STATISTICAL HISTORICAL PATTERN
+# HISTORICAL MODEL
 # ============================================================
 
 MODEL_FEATURES = [
+
     "rsi",
     "macd_hist_pct",
     "ema_gap_pct",
@@ -752,27 +1154,48 @@ MODEL_FEATURES = [
     "volume_ratio",
     "price_vs_poc_pct",
     "candle_move_pct"
+
 ]
 
 
-def summarize_events(events):
+def summarize_events(
+    events
+):
 
-    if len(events) < MIN_HISTORICAL_EVENTS:
+    if (
+        len(events)
+        <
+        MIN_HISTORICAL_EVENTS
+    ):
         return None
 
     result = {
-        "count": len(events)
+        "count":
+            len(events)
     }
 
     for key in MODEL_FEATURES:
 
-        values = [
-            x[key]
-            for x in events
-            if np.isfinite(x[key])
-        ]
+        values = []
 
-        if len(values) < MIN_HISTORICAL_EVENTS:
+        for x in events:
+
+            value = x.get(key)
+
+            if (
+                value is not None
+                and
+                np.isfinite(value)
+            ):
+                values.append(
+                    value
+                )
+
+        if (
+            len(values)
+            <
+            MIN_HISTORICAL_EVENTS
+        ):
             continue
 
         arr = np.array(
@@ -786,21 +1209,41 @@ def summarize_events(events):
 
         mad = float(
             np.median(
-                np.abs(arr - median)
+                np.abs(
+                    arr - median
+                )
             )
         )
 
-        # Prevent zero scale
         minimum_scale = {
+
             "rsi": 5.0,
-            "macd_hist_pct": 0.02,
-            "ema_gap_pct": 0.15,
-            "price_vs_bb_pct": 0.20,
-            "bb_width_pct": 0.30,
-            "volume_ratio": 0.25,
-            "price_vs_poc_pct": 0.50,
-            "candle_move_pct": 0.20
-        }.get(key, 0.1)
+
+            "macd_hist_pct":
+                0.02,
+
+            "ema_gap_pct":
+                0.15,
+
+            "price_vs_bb_pct":
+                0.20,
+
+            "bb_width_pct":
+                0.30,
+
+            "volume_ratio":
+                0.25,
+
+            "price_vs_poc_pct":
+                0.50,
+
+            "candle_move_pct":
+                0.20
+
+        }.get(
+            key,
+            0.1
+        )
 
         scale = max(
             mad * 1.4826,
@@ -808,51 +1251,96 @@ def summarize_events(events):
         )
 
         result[key] = {
-            "median": median,
-            "scale": scale
+            "median":
+                median,
+            "scale":
+                scale
         }
 
     return result
 
 
-def learn_symbol(symbol, pair):
+# ============================================================
+# LEARN ONE SYMBOL
+# ============================================================
+
+def learn_symbol(
+    symbol,
+    pair
+):
 
     print(
-        f"\nLearning 6-month history: {symbol}"
+        f"\nLearning 6-month history: "
+        f"{symbol}"
     )
 
-    df = get_six_month_history(pair)
+    df = get_six_month_history(
+        pair
+    )
 
-    if df is None or len(df) < 500:
+    if df is None:
+
         print(
-            f"{symbol}: insufficient historical data"
+            f"{symbol}: "
+            f"historical data unavailable"
         )
+
         return None
 
-    buys, sells = historical_events(df)
+    print(
+        f"{symbol}: "
+        f"{len(df)} historical candles"
+    )
 
-    buy_model = summarize_events(buys)
-    sell_model = summarize_events(sells)
+    if len(df) < 500:
+
+        print(
+            f"{symbol}: "
+            f"insufficient historical candles"
+        )
+
+        return None
+
+    buys, sells = historical_events(
+        df
+    )
+
+    buy_model = summarize_events(
+        buys
+    )
+
+    sell_model = summarize_events(
+        sells
+    )
 
     print(
-        f"{symbol}: BUY events={len(buys)}, "
+        f"{symbol}: "
+        f"BUY events={len(buys)} | "
         f"SELL events={len(sells)}"
     )
 
     return {
-        "pair": pair,
-        "buy": buy_model,
-        "sell": sell_model
+
+        "pair":
+            pair,
+
+        "buy":
+            buy_model,
+
+        "sell":
+            sell_model
     }
 
 
 # ============================================================
-# MODEL CACHE
+# LOAD MODEL
 # ============================================================
 
 def load_model():
 
-    if not os.path.exists(MODEL_FILE):
+    if not os.path.exists(
+        MODEL_FILE
+    ):
         return None
 
     try:
@@ -862,45 +1350,89 @@ def load_model():
             "r",
             encoding="utf-8"
         ) as f:
+
             model = json.load(f)
 
+        created_text = model.get(
+            "created_utc"
+        )
+
+        if not created_text:
+            return None
+
         created = pd.to_datetime(
-            model.get("created_utc"),
+            created_text,
             utc=True
         )
 
         age_hours = (
-            pd.Timestamp.now(tz="UTC")
+            pd.Timestamp.now(
+                tz="UTC"
+            )
             -
             created
         ).total_seconds() / 3600
 
-        if age_hours > MODEL_REFRESH_HOURS:
+        if (
+            age_hours
+            >
+            MODEL_REFRESH_HOURS
+        ):
             return None
 
         return model
 
-    except Exception:
+    except Exception as e:
+
+        print(
+            "Model load error:",
+            e
+        )
+
         return None
 
 
-def build_model(markets):
+# ============================================================
+# BUILD 6-MONTH MODEL
+# ============================================================
 
-    print("\n" + "=" * 70)
-    print("BUILDING 6-MONTH HISTORICAL MODEL")
-    print("=" * 70)
+def build_model(
+    markets
+):
+
+    print(
+        "\n"
+        +
+        "=" * 70
+    )
+
+    print(
+        "BUILDING 6-MONTH "
+        "HISTORICAL MODEL"
+    )
+
+    print(
+        "=" * 70
+    )
 
     symbols_model = {}
 
-    # Sequential historical download is intentionally safer
-    # for API load during model building.
-    for n, market in enumerate(markets, 1):
+    for n, market in enumerate(
+        markets,
+        1
+    ):
 
-        symbol = market["symbol"]
-        pair = market["pair"]
+        symbol = market[
+            "symbol"
+        ]
+
+        pair = market[
+            "pair"
+        ]
 
         print(
-            f"\n[{n}/{len(markets)}] {symbol}"
+            f"\n[{n}/{len(markets)}] "
+            f"{symbol}"
         )
 
         try:
@@ -912,15 +1444,19 @@ def build_model(markets):
 
             if learned is not None:
 
-                symbols_model[symbol] = learned
+                symbols_model[
+                    symbol
+                ] = learned
 
         except Exception as e:
 
             print(
-                f"{symbol} learning error: {e}"
+                f"{symbol} "
+                f"learning error: {e}"
             )
 
     model = {
+
         "created_utc":
             datetime.now(
                 timezone.utc
@@ -953,14 +1489,22 @@ def build_model(markets):
         MODEL_FILE
     )
 
+    print(
+        "Symbols learned:",
+        len(symbols_model)
+    )
+
     return model
 
 
 # ============================================================
-# HISTORICAL SIMILARITY SCORE
+# HISTORICAL SIMILARITY
 # ============================================================
 
-def similarity_score(features, model):
+def similarity_score(
+    features,
+    model
+):
 
     if model is None:
         return 0.0
@@ -972,31 +1516,57 @@ def similarity_score(features, model):
         if key not in model:
             continue
 
-        value = features.get(key)
+        value = features.get(
+            key
+        )
 
         if value is None:
             continue
 
-        if not np.isfinite(value):
+        if not np.isfinite(
+            value
+        ):
             continue
 
-        median = model[key]["median"]
-        scale = model[key]["scale"]
+        median = float(
+            model[key][
+                "median"
+            ]
+        )
 
-        distance = abs(
-            value - median
-        ) / scale
+        scale = float(
+            model[key][
+                "scale"
+            ]
+        )
 
-        # distance 0 = 100
-        # distance >= 3 = 0
+        if scale <= 0:
+            continue
+
+        distance = (
+            abs(
+                value
+                -
+                median
+            )
+            /
+            scale
+        )
+
         score = max(
             0.0,
-            100.0 * (
-                1.0 - distance / 3.0
+            100.0
+            *
+            (
+                1.0
+                -
+                distance / 3.0
             )
         )
 
-        scores.append(score)
+        scores.append(
+            score
+        )
 
     if not scores:
         return 0.0
@@ -1007,20 +1577,32 @@ def similarity_score(features, model):
 
 
 # ============================================================
-# LIVE BUY / SELL CONFIRMATION
+# LIVE ANALYSIS
 # ============================================================
 
-def analyze_live(market, historical_model):
+def analyze_live(
+    market,
+    historical_model
+):
 
-    symbol = market["symbol"]
-    pair = market["pair"]
+    symbol = market[
+        "symbol"
+    ]
 
-    df = get_live_5m(pair)
+    pair = market[
+        "pair"
+    ]
+
+    df = get_live_5m(
+        pair
+    )
 
     if df is None:
         return None
 
-    df = add_indicators(df)
+    df = add_indicators(
+        df
+    )
 
     i = len(df) - 1
 
@@ -1033,24 +1615,37 @@ def analyze_live(market, historical_model):
         return None
 
     row = df.iloc[i]
-    prev = df.iloc[i - 1]
 
-    candle_move = features[
-        "candle_move_pct"
+    prev = df.iloc[
+        i - 1
     ]
 
-    # Do not chase a move that is already too extended
-    if abs(candle_move) > MAX_CURRENT_CANDLE_MOVE:
+    candle_move = float(
+        features[
+            "candle_move_pct"
+        ]
+    )
+
+    # Do not chase an already extended candle
+    if (
+        abs(candle_move)
+        >
+        MAX_CURRENT_CANDLE_MOVE
+    ):
         return None
 
     buy_model = (
-        historical_model.get("buy")
+        historical_model.get(
+            "buy"
+        )
         if historical_model
         else None
     )
 
     sell_model = (
-        historical_model.get("sell")
+        historical_model.get(
+            "sell"
+        )
         if historical_model
         else None
     )
@@ -1065,55 +1660,90 @@ def analyze_live(market, historical_model):
         sell_model
     )
 
-    price = float(row["close"])
+    price = float(
+        row["close"]
+    )
 
-    # --------------------------------------------------------
-    # CURRENT BUY CONFIRMATION
-    # --------------------------------------------------------
+    # ========================================================
+    # BUY CONDITIONS
+    # ========================================================
 
     buy_rsi = (
-        42 <= row["RSI14"] <= 70
+        42
+        <=
+        row["RSI14"]
+        <=
+        70
     )
 
     buy_macd = (
-        row["MACD_HIST"] > 0
+        row["MACD_HIST"]
+        >
+        0
         and
-        row["MACD_HIST"] >=
+        row["MACD_HIST"]
+        >=
         prev["MACD_HIST"]
     )
 
     buy_ema = (
-        row["EMA20"] >= row["EMA50"]
+
+        row["EMA20"]
+        >=
+        row["EMA50"]
+
         or
+
         (
-            row["EMA20"] >
+            row["EMA20"]
+            >
             prev["EMA20"]
+
             and
-            price > row["EMA20"]
+
+            price
+            >
+            row["EMA20"]
         )
     )
 
     buy_bb = (
-        price >= row["BB_MIDDLE"]
+        price
+        >=
+        row["BB_MIDDLE"]
+
         and
-        price <= row["BB_UPPER"] * 1.01
+
+        price
+        <=
+        row["BB_UPPER"]
+        *
+        1.01
     )
 
     buy_volume = (
-        row["VOLUME_RATIO"] >= 1.0
+        row["VOLUME_RATIO"]
+        >=
+        1.0
     )
 
     buy_poc = (
-        features["price_vs_poc_pct"] >= 0
+        features[
+            "price_vs_poc_pct"
+        ]
+        >=
+        0
     )
 
     buy_checks = [
+
         buy_rsi,
         buy_macd,
         buy_ema,
         buy_bb,
         buy_volume,
         buy_poc
+
     ]
 
     buy_confirmations = sum(
@@ -1121,53 +1751,88 @@ def analyze_live(market, historical_model):
         for x in buy_checks
     )
 
-    # --------------------------------------------------------
-    # CURRENT SELL CONFIRMATION
-    # --------------------------------------------------------
+    # ========================================================
+    # SELL CONDITIONS
+    # ========================================================
 
     sell_rsi = (
-        30 <= row["RSI14"] <= 58
+        30
+        <=
+        row["RSI14"]
+        <=
+        58
     )
 
     sell_macd = (
-        row["MACD_HIST"] < 0
+        row["MACD_HIST"]
+        <
+        0
+
         and
-        row["MACD_HIST"] <=
+
+        row["MACD_HIST"]
+        <=
         prev["MACD_HIST"]
     )
 
     sell_ema = (
-        row["EMA20"] <= row["EMA50"]
+
+        row["EMA20"]
+        <=
+        row["EMA50"]
+
         or
+
         (
-            row["EMA20"] <
+            row["EMA20"]
+            <
             prev["EMA20"]
+
             and
-            price < row["EMA20"]
+
+            price
+            <
+            row["EMA20"]
         )
     )
 
     sell_bb = (
-        price <= row["BB_MIDDLE"]
+        price
+        <=
+        row["BB_MIDDLE"]
+
         and
-        price >= row["BB_LOWER"] * 0.99
+
+        price
+        >=
+        row["BB_LOWER"]
+        *
+        0.99
     )
 
     sell_volume = (
-        row["VOLUME_RATIO"] >= 1.0
+        row["VOLUME_RATIO"]
+        >=
+        1.0
     )
 
     sell_poc = (
-        features["price_vs_poc_pct"] <= 0
+        features[
+            "price_vs_poc_pct"
+        ]
+        <=
+        0
     )
 
     sell_checks = [
+
         sell_rsi,
         sell_macd,
         sell_ema,
         sell_bb,
         sell_volume,
         sell_poc
+
     ]
 
     sell_confirmations = sum(
@@ -1176,31 +1841,76 @@ def analyze_live(market, historical_model):
     )
 
     signal = None
-    match_score = 0
+    match_score = 0.0
     confirmations = 0
 
-    # Historical match + at least 5/6 live indicators
+    # ========================================================
+    # DIRECT BUY CONFIRMATION
+    # ========================================================
+
     if (
-        buy_match >= MIN_MATCH_SCORE
+
+        buy_match
+        >=
+        MIN_MATCH_SCORE
+
         and
-        buy_confirmations >= 5
+
+        buy_confirmations
+        >=
+        5
+
         and
-        buy_match > sell_match
+
+        buy_match
+        >
+        sell_match
+
     ):
+
         signal = "BUY"
-        match_score = buy_match
-        confirmations = buy_confirmations
+
+        match_score = (
+            buy_match
+        )
+
+        confirmations = (
+            buy_confirmations
+        )
+
+    # ========================================================
+    # DIRECT SELL CONFIRMATION
+    # ========================================================
 
     elif (
-        sell_match >= MIN_MATCH_SCORE
+
+        sell_match
+        >=
+        MIN_MATCH_SCORE
+
         and
-        sell_confirmations >= 5
+
+        sell_confirmations
+        >=
+        5
+
         and
-        sell_match > buy_match
+
+        sell_match
+        >
+        buy_match
+
     ):
+
         signal = "SELL"
-        match_score = sell_match
-        confirmations = sell_confirmations
+
+        match_score = (
+            sell_match
+        )
+
+        confirmations = (
+            sell_confirmations
+        )
 
     if signal is None:
         return None
@@ -1212,56 +1922,87 @@ def analyze_live(market, historical_model):
     )
 
     close_time = (
-        candle_time +
-        pd.Timedelta(minutes=5)
+        candle_time
+        +
+        pd.Timedelta(
+            minutes=5
+        )
     )
 
     return {
-        "SYMBOL": symbol,
-        "PAIR": pair,
-        "SIGNAL": signal,
-        "TIME": close_time.isoformat(),
-        "PRICE": round(price, 8),
+
+        "SYMBOL":
+            symbol,
+
+        "PAIR":
+            pair,
+
+        "SIGNAL":
+            signal,
+
+        "TIME":
+            close_time.isoformat(),
+
+        "PRICE":
+            round(
+                price,
+                8
+            ),
 
         "HISTORICAL_MATCH":
-            round(match_score, 1),
+            round(
+                match_score,
+                1
+            ),
 
         "CONFIRMATIONS":
             confirmations,
 
         "RSI14":
             round(
-                float(row["RSI14"]),
+                float(
+                    row["RSI14"]
+                ),
                 2
             ),
 
         "MACD_HIST":
             round(
-                float(row["MACD_HIST"]),
+                float(
+                    row["MACD_HIST"]
+                ),
                 8
             ),
 
         "EMA20":
             round(
-                float(row["EMA20"]),
+                float(
+                    row["EMA20"]
+                ),
                 8
             ),
 
         "EMA50":
             round(
-                float(row["EMA50"]),
+                float(
+                    row["EMA50"]
+                ),
                 8
             ),
 
         "VOLUME_RATIO":
             round(
-                float(row["VOLUME_RATIO"]),
+                float(
+                    row["VOLUME_RATIO"]
+                ),
                 2
             ),
 
         "POC":
             round(
-                float(features["poc"]),
+                float(
+                    features["poc"]
+                ),
                 8
             ),
 
@@ -1278,7 +2019,9 @@ def analyze_live(market, historical_model):
         "24H_VOLUME_USDT":
             round(
                 float(
-                    market["volume_24h"]
+                    market[
+                        "volume_24h"
+                    ]
                 ),
                 2
             )
@@ -1286,17 +2029,25 @@ def analyze_live(market, historical_model):
 
 
 # ============================================================
-# DUPLICATE ALERT PROTECTION
+# DUPLICATE ALERT CHECK
 # ============================================================
 
-def already_alerted(symbol, signal, candle_time):
+def already_alerted(
+    symbol,
+    signal,
+    candle_time
+):
 
-    if not os.path.exists(ALERT_FILE):
+    if not os.path.exists(
+        ALERT_FILE
+    ):
         return False
 
     try:
 
-        old = pd.read_csv(ALERT_FILE)
+        old = pd.read_csv(
+            ALERT_FILE
+        )
 
         if old.empty:
             return False
@@ -1313,34 +2064,76 @@ def already_alerted(symbol, signal, candle_time):
             return False
 
         found = (
-            (old["SYMBOL"].astype(str) == str(symbol))
+
+            (
+                old["SYMBOL"]
+                .astype(str)
+                ==
+                str(symbol)
+            )
+
             &
-            (old["SIGNAL"].astype(str) == str(signal))
+
+            (
+                old["SIGNAL"]
+                .astype(str)
+                ==
+                str(signal)
+            )
+
             &
-            (old["TIME"].astype(str) == str(candle_time))
+
+            (
+                old["TIME"]
+                .astype(str)
+                ==
+                str(candle_time)
+            )
+
         )
 
-        return bool(found.any())
+        return bool(
+            found.any()
+        )
 
     except Exception:
         return False
 
 
+# ============================================================
+# SAVE ALERT
+# ============================================================
+
 def save_alert(row):
 
-    new = pd.DataFrame([{
-        "SYMBOL": row["SYMBOL"],
-        "SIGNAL": row["SIGNAL"],
-        "TIME": row["TIME"]
-    }])
+    new = pd.DataFrame(
+        [{
+            "SYMBOL":
+                row["SYMBOL"],
 
-    if os.path.exists(ALERT_FILE):
+            "SIGNAL":
+                row["SIGNAL"],
+
+            "TIME":
+                row["TIME"]
+        }]
+    )
+
+    if os.path.exists(
+        ALERT_FILE
+    ):
 
         try:
-            old = pd.read_csv(ALERT_FILE)
+
+            old = pd.read_csv(
+                ALERT_FILE
+            )
 
             new = pd.concat(
-                [old, new],
+                [
+                    old,
+                    new
+                ],
                 ignore_index=True
             )
 
@@ -1363,7 +2156,7 @@ def save_alert(row):
 
 
 # ============================================================
-# SEND BUY / SELL ALERT
+# TELEGRAM BUY / SELL MESSAGE
 # ============================================================
 
 def process_alert(row):
@@ -1373,6 +2166,13 @@ def process_alert(row):
         row["SIGNAL"],
         row["TIME"]
     ):
+
+        print(
+            "Duplicate alert skipped:",
+            row["SYMBOL"],
+            row["SIGNAL"]
+        )
+
         return
 
     utc_time = pd.to_datetime(
@@ -1381,72 +2181,123 @@ def process_alert(row):
     )
 
     ist_time = (
-        utc_time +
+        utc_time
+        +
         pd.Timedelta(
             hours=5,
             minutes=30
         )
     )
 
-    time_text = ist_time.strftime(
-        "%d-%m-%Y %I:%M %p"
+    time_text = (
+        ist_time.strftime(
+            "%d-%m-%Y %I:%M %p"
+        )
     )
 
     volume_m = (
-        row["24H_VOLUME_USDT"]
-        / 1_000_000
+        row[
+            "24H_VOLUME_USDT"
+        ]
+        /
+        1_000_000
     )
 
-    if row["SIGNAL"] == "BUY":
+    if (
+        row["SIGNAL"]
+        ==
+        "BUY"
+    ):
 
-        title = "🟢 BUY CONFIRMATION"
+        title = (
+            "🟢 BUY CONFIRMATION"
+        )
 
     else:
 
-        title = "🔴 SELL CONFIRMATION"
+        title = (
+            "🔴 SELL CONFIRMATION"
+        )
 
     message = (
+
         f"{title} - CoinDCX\n\n"
-        f"Symbol: {row['SYMBOL']}\n"
+
+        f"Symbol: "
+        f"{row['SYMBOL']}\n"
+
         f"Timeframe: 5 Minute\n"
-        f"Time (IST): {time_text}\n"
-        f"Price: {row['PRICE']}\n\n"
+
+        f"Time (IST): "
+        f"{time_text}\n"
+
+        f"Price: "
+        f"{row['PRICE']}\n\n"
+
         f"6-Month Historical Match: "
         f"{row['HISTORICAL_MATCH']}%\n"
+
         f"Live Confirmations: "
         f"{row['CONFIRMATIONS']}/6\n\n"
-        f"RSI(14): {row['RSI14']}\n"
-        f"MACD Histogram: {row['MACD_HIST']}\n"
-        f"EMA20: {row['EMA20']}\n"
-        f"EMA50: {row['EMA50']}\n"
-        f"Volume Ratio: {row['VOLUME_RATIO']}x\n"
-        f"POC: {row['POC']}\n"
+
+        f"RSI(14): "
+        f"{row['RSI14']}\n"
+
+        f"MACD Histogram: "
+        f"{row['MACD_HIST']}\n"
+
+        f"EMA20: "
+        f"{row['EMA20']}\n"
+
+        f"EMA50: "
+        f"{row['EMA50']}\n"
+
+        f"Volume Ratio: "
+        f"{row['VOLUME_RATIO']}x\n"
+
+        f"POC: "
+        f"{row['POC']}\n"
+
         f"Price vs POC: "
         f"{row['PRICE_VS_POC_PCT']}%\n"
-        f"24H Volume: ${volume_m:.2f}M\n\n"
-        f"Historical + current technical "
-        f"conditions confirmed."
+
+        f"24H Volume: "
+        f"${volume_m:.2f}M\n\n"
+
+        f"Historical pattern + "
+        f"current technical conditions "
+        f"confirmed."
     )
 
-    if send_telegram(message):
+    if send_telegram(
+        message
+    ):
 
-        save_alert(row)
+        save_alert(
+            row
+        )
 
 
 # ============================================================
-# MAIN SCANNER
+# MAIN
 # ============================================================
 
 def run():
 
-    print("\n" + "=" * 70)
+    print(
+        "\n"
+        +
+        "=" * 70
+    )
 
     print(
         "COINDCX 5-MIN BUY / SELL "
         "HISTORICAL CONFIRMATION SCANNER"
     )
 
-    print("=" * 70)
+    print(
+        "=" * 70
+    )
 
     print(
         "UTC:",
@@ -1468,6 +2319,11 @@ def run():
     )
 
     print(
+        "Historical candles: "
+        "15 minute"
+    )
+
+    print(
         "Live timeframe: "
         "5 minutes"
     )
@@ -1477,41 +2333,55 @@ def run():
     )
 
     print(
-        "Signals: BUY + SELL confirmation"
+        "Signals: "
+        "BUY + SELL confirmation"
     )
 
-    print("\nGetting CoinDCX markets...")
+    print(
+        "\nGetting CoinDCX markets..."
+    )
 
     markets = get_symbols()
 
     print(
-        "Qualifying markets:",
+        "\nQualifying markets:",
         len(markets)
     )
 
     if not markets:
 
         print(
+            "\nERROR:"
+        )
+
+        print(
             "No USDT markets passed "
             "$5M volume filter."
         )
 
+        print(
+            "Scanner stopped before "
+            "historical analysis."
+        )
+
         return
 
-    # --------------------------------------------------------
-    # Load historical learning
-    # --------------------------------------------------------
+    # ========================================================
+    # LOAD OR BUILD 6-MONTH MODEL
+    # ========================================================
 
     model = load_model()
 
     if model is None:
 
         print(
-            "\nNo fresh historical model found."
+            "\nNo fresh historical "
+            "model found."
         )
 
         print(
-            "Starting 6-month learning..."
+            "Starting 6-month "
+            "historical learning..."
         )
 
         model = build_model(
@@ -1521,27 +2391,56 @@ def run():
     else:
 
         print(
-            "\nUsing saved 6-month "
-            "historical model."
+            "\nUsing saved "
+            "6-month historical model."
         )
 
-    model_symbols = model.get(
-        "symbols",
-        {}
+        print(
+            "Model created:",
+            model.get(
+                "created_utc"
+            )
+        )
+
+    model_symbols = (
+        model.get(
+            "symbols",
+            {}
+        )
     )
 
-    # --------------------------------------------------------
-    # Live 5-minute scan
-    # --------------------------------------------------------
+    print(
+        "Historical models available:",
+        len(model_symbols)
+    )
 
-    print("\n" + "=" * 70)
+    if not model_symbols:
+
+        print(
+            "No usable historical "
+            "models were created."
+        )
+
+        return
+
+    # ========================================================
+    # LIVE 5-MINUTE SCAN
+    # ========================================================
+
+    print(
+        "\n"
+        +
+        "=" * 70
+    )
 
     print(
         "STARTING LIVE CLOSED "
         "5-MINUTE SCAN"
     )
 
-    print("=" * 70)
+    print(
+        "=" * 70
+    )
 
     signals = []
 
@@ -1553,10 +2452,16 @@ def run():
 
         for market in markets:
 
-            symbol = market["symbol"]
+            symbol = (
+                market[
+                    "symbol"
+                ]
+            )
 
-            hist = model_symbols.get(
-                symbol
+            hist = (
+                model_symbols.get(
+                    symbol
+                )
             )
 
             if hist is None:
@@ -1568,28 +2473,41 @@ def run():
                 hist
             )
 
-            futures[future] = symbol
+            futures[
+                future
+            ] = symbol
 
-        total = len(futures)
+        total = len(
+            futures
+        )
+
+        print(
+            "Markets being scanned:",
+            total
+        )
 
         for n, future in enumerate(
-            as_completed(futures),
+            as_completed(
+                futures
+            ),
             1
         ):
 
-            symbol = futures[future]
+            symbol = futures[
+                future
+            ]
 
             print(
-                f"\rScanning "
-                f"{n}/{total} "
-                f"{symbol}          ",
-                end="",
-                flush=True
+                f"Scanning "
+                f"{n}/{total}: "
+                f"{symbol}"
             )
 
             try:
 
-                result = future.result()
+                result = (
+                    future.result()
+                )
 
                 if result is not None:
 
@@ -1598,7 +2516,7 @@ def run():
                     )
 
                     print(
-                        f"\n"
+                        f">>> "
                         f"{result['SIGNAL']} "
                         f"CONFIRMATION: "
                         f"{symbol} | "
@@ -1613,21 +2531,39 @@ def run():
             except Exception as e:
 
                 print(
-                    f"\n{symbol} error: {e}"
+                    f"{symbol} "
+                    f"live scan error: "
+                    f"{e}"
                 )
 
-    print("\n")
+    # ========================================================
+    # RESULTS
+    # ========================================================
 
     if not signals:
 
         print(
-            "No BUY / SELL confirmation "
-            "on current closed 5-minute candle."
+            "\n"
+            +
+            "=" * 70
         )
 
         print(
-            "This is normal. "
-            "Wait for next scan."
+            "NO BUY / SELL "
+            "CONFIRMATION RIGHT NOW"
+        )
+
+        print(
+            "=" * 70
+        )
+
+        print(
+            "Scanner completed normally."
+        )
+
+        print(
+            "Wait for the next "
+            "5-minute scan."
         )
 
         return
@@ -1637,16 +2573,19 @@ def run():
     )
 
     out = out.sort_values(
+
         [
             "HISTORICAL_MATCH",
             "CONFIRMATIONS",
             "VOLUME_RATIO"
         ],
+
         ascending=[
             False,
             False,
             False
         ]
+
     )
 
     out.to_csv(
@@ -1654,14 +2593,20 @@ def run():
         index=False
     )
 
-    print("\n" + "=" * 70)
+    print(
+        "\n"
+        +
+        "=" * 70
+    )
 
     print(
         "CONFIRMATIONS FOUND:",
         len(out)
     )
 
-    print("=" * 70)
+    print(
+        "=" * 70
+    )
 
     print(
         out[
@@ -1686,7 +2631,7 @@ def run():
 
 
 # ============================================================
-# START
+# START PROGRAM
 # ============================================================
 
 if __name__ == "__main__":
