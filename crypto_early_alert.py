@@ -7,8 +7,8 @@ TELEGRAM_ENABLED=True
 TELEGRAM_BOT_TOKEN=os.getenv("BOT_TOKEN",""); TELEGRAM_CHAT_ID=os.getenv("CHAT_ID","")
 OUTPUT_FILE="crypto_early_signals.csv"; ALERT_FILE="telegram_early_alerted_signals.csv"
 
-# Minimum 24-hour volume in USDT (100 Million)
-MIN_24H_VOLUME = 100_000_000 
+# Minimum 24-hour volume in USDT (10 Million)
+MIN_24H_VOLUME = 10_000_000 
 
 def get_symbols():
     r=requests.get(f"{BASE_URL}/exchange/v1/markets_details",timeout=30); r.raise_for_status()
