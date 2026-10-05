@@ -1,0 +1,55 @@
+name: Crypto Live 5M Scanner
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    - cron: "*/5 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: crypto-live-5m-scanner
+  cancel-in-progress: true
+
+jobs:
+  live-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas numpy requests
+
+      - name: Run Crypto Live 5M Scanner
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+        run: |
+          python crypto_live_5m.py
+
+      - name: Save Scanner State
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add telegram_early_alerted_signals.csv 2>/dev/null || true
+          git add crypto_5m_signals.csv 2>/dev/null || true
+
+          if ! git diff --cached --quiet; then
+            git commit -m "Update 5-minute crypto scanner state"
+            git push
+          else
+            echo "No scanner state changes."
+          fi
