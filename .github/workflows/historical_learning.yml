@@ -1,0 +1,48 @@
+name: Crypto Historical Learning
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: crypto-historical-learning
+  cancel-in-progress: false
+
+jobs:
+  historical-learning:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas numpy requests
+
+      - name: Run 6-Month Historical Learning
+        run: |
+          python crypto_historical_learning.py
+
+      - name: Save Historical Model
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add crypto_6month_patterns.json 2>/dev/null || true
+
+          if ! git diff --cached --quiet; then
+            git commit -m "Update 6-month crypto historical model"
+            git push
+          else
+            echo "No historical model changes to save."
+          fi
