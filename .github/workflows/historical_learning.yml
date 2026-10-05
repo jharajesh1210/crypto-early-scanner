@@ -3,6 +3,9 @@ name: Crypto Historical Learning
 on:
   workflow_dispatch:
 
+  schedule:
+    - cron: "*/10 * * * *"
+
 permissions:
   contents: write
 
@@ -13,7 +16,7 @@ concurrency:
 jobs:
   historical-learning:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
 
     steps:
       - name: Checkout repository
@@ -29,7 +32,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install pandas numpy requests
 
-      - name: Run 6-Month Historical Learning
+      - name: Run Next Historical Batch
         run: |
           python crypto_historical_learning.py
 
@@ -38,11 +41,12 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add crypto_6month_patterns.json 2>/dev/null || true
+          git add crypto_6month_patterns.json
 
           if ! git diff --cached --quiet; then
-            git commit -m "Update 6-month crypto historical model"
-            git push
+            git commit -m "Auto update 6-month historical model"
+            git pull --rebase origin main
+            git push origin main
           else
-            echo "No historical model changes to save."
+            echo "No new historical models to save."
           fi
