@@ -1207,7 +1207,7 @@ def analyze_symbol(
 
     candle_time = pd.to_datetime(
         row["time"],
-        unit="ms",
+        unit="s",
         utc=True
     )
 
