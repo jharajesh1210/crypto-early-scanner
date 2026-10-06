@@ -2,60 +2,35 @@
 # crypto_futures_historical_v17.py
 #
 # COINDCX FUTURES HISTORICAL V17
-#
 # REGIME + VOLATILITY + ATR EXPECTANCY ENGINE
+#
+# Uses the already-proven CoinDCX Futures downloader from:
+# crypto_futures_historical_learning.py
 #
 # Historical research only.
 # NO Telegram.
 # NO real orders.
 # ============================================================
 
-import time
-import math
-import itertools
-import requests
 import numpy as np
 import pandas as pd
-from datetime import datetime, timezone, timedelta
+
+import crypto_futures_historical_learning as v1
 
 
 # ============================================================
-# BASIC SETTINGS
+# SETTINGS
 # ============================================================
 
 PAIR = "B-BTC_USDT"
 
-FUTURES_CANDLES_URL = (
-    "https://public.coindcx.com/market_data/candlesticks"
-)
-
-HISTORY_ATTEMPTS = [
-    365,
-    270,
-    180,
-]
-
-ENTRY_RESOLUTION = "5"
-TREND_RESOLUTION = "60"
-
-CHUNK_DAYS_5M = 5
-CHUNK_DAYS_1H = 30
-
-
-# ============================================================
-# DATA SPLIT
-# ============================================================
+HISTORY_ATTEMPTS = [365, 270, 180]
 
 DISCOVERY_RATIO = 0.60
 SELECTION_RATIO = 0.20
 HOLDOUT_RATIO = 0.20
 
 FINAL_BLOCKS = 4
-
-
-# ============================================================
-# COST / TRADE SETTINGS
-# ============================================================
 
 ROUND_TRIP_COST_PCT = 0.10
 
@@ -64,70 +39,45 @@ MAX_HOLD_BARS = 48
 SAME_BAR_POLICY = "SL_FIRST"
 
 
-# ============================================================
-# ATR TARGET GRID
-# ============================================================
-#
-# Small grid deliberately.
-# We do NOT test hundreds of combinations.
-# ============================================================
+# Small TP/SL grid.
+# We deliberately avoid hundreds of combinations.
 
 ATR_TP_MULTIPLIERS = [
-    1.0,
+    1.00,
     1.25,
     1.50,
     1.75,
-    2.0,
+    2.00,
 ]
 
 ATR_SL_MULTIPLIERS = [
     0.75,
-    1.0,
+    1.00,
     1.25,
     1.50,
 ]
 
-
-# ============================================================
-# MINIMUM SAMPLE
-# ============================================================
 
 MIN_DISCOVERY_TRADES = 35
 MIN_SELECTION_TRADES = 18
 MIN_HOLDOUT_TRADES = 15
 
 
-# ============================================================
-# SELECTION REQUIREMENTS
-# ============================================================
-
-SELECTION_MIN_NET_AVG = 0.0
-SELECTION_MIN_PF = 1.05
-SELECTION_MIN_TRADES = 18
-
-
-# ============================================================
-# FINAL PASS
-# ============================================================
+# Final PASS criteria
 
 PASS_MIN_TRADES = 20
 PASS_MIN_NET_AVG = 0.0
 PASS_MIN_PF = 1.15
-
 PASS_MIN_POSITIVE_BLOCKS = 3
 PASS_MIN_VALID_BLOCKS = 3
-
 PASS_MAX_DRAWDOWN_PCT = 6.0
 
 
-# ============================================================
-# FINAL WATCH
-# ============================================================
+# Final WATCH criteria
 
 WATCH_MIN_TRADES = 15
 WATCH_MIN_NET_AVG = 0.0
 WATCH_MIN_PF = 1.00
-
 WATCH_MIN_POSITIVE_BLOCKS = 2
 WATCH_MIN_VALID_BLOCKS = 2
 
@@ -136,39 +86,31 @@ WATCH_MIN_VALID_BLOCKS = 2
 # OUTPUT FILES
 # ============================================================
 
-EVENT_FILE = (
-    "crypto_futures_v17_events.csv"
-)
+EVENT_FILE = "crypto_futures_v17_events.csv"
 
-DISCOVERY_FILE = (
-    "crypto_futures_v17_discovery.csv"
-)
+DISCOVERY_FILE = "crypto_futures_v17_discovery.csv"
 
-SELECTION_FILE = (
-    "crypto_futures_v17_selection.csv"
-)
+SELECTION_FILE = "crypto_futures_v17_selection.csv"
 
-FINAL_BLOCK_FILE = (
-    "crypto_futures_v17_final_blocks.csv"
-)
+FINAL_BLOCK_FILE = "crypto_futures_v17_final_blocks.csv"
 
-SUMMARY_FILE = (
-    "crypto_futures_v17_summary.csv"
-)
+SUMMARY_FILE = "crypto_futures_v17_summary.csv"
 
 
 # ============================================================
-# SAFE HELPERS
+# SAFE FLOAT
 # ============================================================
 
 def safe_float(value, default=np.nan):
 
     try:
 
-        if pd.isna(value):
-            return default
+        value = float(value)
 
-        return float(value)
+        if np.isfinite(value):
+            return value
+
+        return default
 
     except Exception:
 
@@ -176,368 +118,7 @@ def safe_float(value, default=np.nan):
 
 
 # ============================================================
-# COINDCX CANDLE PARSER
-# ============================================================
-
-def parse_candles(payload):
-
-    if payload is None:
-        return pd.DataFrame()
-
-    if isinstance(payload, dict):
-
-        if "data" in payload:
-            payload = payload["data"]
-
-        elif "candles" in payload:
-            payload = payload["candles"]
-
-        elif "result" in payload:
-            payload = payload["result"]
-
-    if not isinstance(payload, list):
-        return pd.DataFrame()
-
-    rows = []
-
-    for candle in payload:
-
-        try:
-
-            # ------------------------------------------------
-            # Dictionary response
-            # ------------------------------------------------
-
-            if isinstance(candle, dict):
-
-                timestamp = (
-                    candle.get("time")
-                    or
-                    candle.get("timestamp")
-                    or
-                    candle.get("t")
-                    or
-                    candle.get("startTime")
-                )
-
-                open_price = (
-                    candle.get("open")
-                    if "open" in candle
-                    else candle.get("o")
-                )
-
-                high = (
-                    candle.get("high")
-                    if "high" in candle
-                    else candle.get("h")
-                )
-
-                low = (
-                    candle.get("low")
-                    if "low" in candle
-                    else candle.get("l")
-                )
-
-                close = (
-                    candle.get("close")
-                    if "close" in candle
-                    else candle.get("c")
-                )
-
-                volume = (
-                    candle.get("volume")
-                    if "volume" in candle
-                    else candle.get("v")
-                )
-
-            # ------------------------------------------------
-            # Array response
-            # ------------------------------------------------
-
-            elif isinstance(
-                candle,
-                (list, tuple)
-            ):
-
-                if len(candle) < 5:
-                    continue
-
-                timestamp = candle[0]
-                open_price = candle[1]
-                high = candle[2]
-                low = candle[3]
-                close = candle[4]
-
-                if len(candle) > 5:
-                    volume = candle[5]
-                else:
-                    volume = np.nan
-
-            else:
-                continue
-
-            rows.append(
-                {
-                    "timestamp": timestamp,
-                    "open": open_price,
-                    "high": high,
-                    "low": low,
-                    "close": close,
-                    "volume": volume,
-                }
-            )
-
-        except Exception:
-            continue
-
-    if not rows:
-        return pd.DataFrame()
-
-    df = pd.DataFrame(rows)
-
-    # --------------------------------------------------------
-    # Timestamp conversion
-    # --------------------------------------------------------
-
-    numeric_time = pd.to_numeric(
-        df["timestamp"],
-        errors="coerce",
-    )
-
-    median_time = numeric_time.median()
-
-    if pd.notna(median_time):
-
-        if median_time > 1e12:
-
-            df["datetime"] = pd.to_datetime(
-                numeric_time,
-                unit="ms",
-                utc=True,
-                errors="coerce",
-            )
-
-        else:
-
-            df["datetime"] = pd.to_datetime(
-                numeric_time,
-                unit="s",
-                utc=True,
-                errors="coerce",
-            )
-
-    else:
-
-        df["datetime"] = pd.to_datetime(
-            df["timestamp"],
-            utc=True,
-            errors="coerce",
-        )
-
-    for column in [
-        "open",
-        "high",
-        "low",
-        "close",
-        "volume",
-    ]:
-
-        df[column] = pd.to_numeric(
-            df[column],
-            errors="coerce",
-        )
-
-    df = (
-        df
-        .dropna(
-            subset=[
-                "datetime",
-                "open",
-                "high",
-                "low",
-                "close",
-            ]
-        )
-        .sort_values("datetime")
-        .drop_duplicates(
-            subset=["datetime"]
-        )
-        .reset_index(drop=True)
-    )
-
-    return df[
-        [
-            "datetime",
-            "open",
-            "high",
-            "low",
-            "close",
-            "volume",
-        ]
-    ]
-
-
-# ============================================================
-# DOWNLOAD ONE CHUNK
-# ============================================================
-
-def fetch_chunk(
-    pair,
-    resolution,
-    start_time,
-    end_time,
-):
-
-    start_ms = int(
-        start_time.timestamp()
-        *
-        1000
-    )
-
-    end_ms = int(
-        end_time.timestamp()
-        *
-        1000
-    )
-
-    params = {
-        "pair": pair,
-        "from": start_ms,
-        "to": end_ms,
-        "resolution": resolution,
-        "pcode": "f",
-    }
-
-    response = requests.get(
-        FUTURES_CANDLES_URL,
-        params=params,
-        timeout=30,
-    )
-
-    response.raise_for_status()
-
-    return parse_candles(
-        response.json()
-    )
-
-
-# ============================================================
-# DOWNLOAD FULL HISTORY
-# ============================================================
-
-def fetch_history(
-    pair,
-    resolution,
-    days,
-    chunk_days,
-):
-
-    end_time = datetime.now(
-        timezone.utc
-    )
-
-    start_time = (
-        end_time
-        -
-        timedelta(days=days)
-    )
-
-    frames = []
-
-    cursor = start_time
-
-    chunk_number = 0
-
-    while cursor < end_time:
-
-        chunk_number += 1
-
-        chunk_end = min(
-            cursor
-            +
-            timedelta(
-                days=chunk_days
-            ),
-            end_time,
-        )
-
-        print(
-            f"Chunk {chunk_number}: "
-            f"{cursor} -> {chunk_end} "
-            f"resolution={resolution}"
-        )
-
-        success = False
-
-        for attempt in range(1, 4):
-
-            try:
-
-                chunk = fetch_chunk(
-                    pair,
-                    resolution,
-                    cursor,
-                    chunk_end,
-                )
-
-                print(
-                    "Candles received:",
-                    len(chunk),
-                )
-
-                if not chunk.empty:
-
-                    frames.append(
-                        chunk
-                    )
-
-                success = True
-                break
-
-            except Exception as exc:
-
-                print(
-                    f"Attempt {attempt} failed:",
-                    str(exc),
-                )
-
-                time.sleep(
-                    attempt * 2
-                )
-
-        if not success:
-
-            raise RuntimeError(
-                "CoinDCX history chunk failed: "
-                f"{cursor} -> {chunk_end}"
-            )
-
-        cursor = chunk_end
-
-        time.sleep(0.05)
-
-    if not frames:
-        return pd.DataFrame()
-
-    result = pd.concat(
-        frames,
-        ignore_index=True,
-    )
-
-    result = (
-        result
-        .sort_values("datetime")
-        .drop_duplicates(
-            subset=["datetime"]
-        )
-        .reset_index(drop=True)
-    )
-
-    return result
-
-
-# ============================================================
-# HISTORY FALLBACK
+# DOWNLOAD USING PROVEN V1 DOWNLOADER
 # ============================================================
 
 def download_history():
@@ -546,32 +127,30 @@ def download_history():
 
     for days in HISTORY_ATTEMPTS:
 
+        print()
+        print("=" * 110)
+
+        print(
+            f"V17 TRYING HISTORY: {days} DAYS"
+        )
+
+        print("=" * 110)
+
         try:
 
             print()
-            print("=" * 100)
-
             print(
-                "TRYING HISTORY:",
-                days,
-                "DAYS"
+                "Downloading native 5-minute Futures data..."
             )
 
-            print("=" * 100)
-
-            print()
-            print(
-                "Downloading native 5-minute data..."
-            )
-
-            df_5m = fetch_history(
+            df_5m = v1.fetch_history(
                 PAIR,
-                ENTRY_RESOLUTION,
+                "5",
                 days,
-                CHUNK_DAYS_5M,
+                v1.CHUNK_DAYS_5M,
             )
 
-            if df_5m.empty:
+            if df_5m is None or df_5m.empty:
 
                 raise RuntimeError(
                     "5-minute data empty."
@@ -579,17 +158,23 @@ def download_history():
 
             print()
             print(
-                "Downloading native 1-hour data..."
+                "5M CANDLES:",
+                len(df_5m)
             )
 
-            df_1h = fetch_history(
+            print()
+            print(
+                "Downloading native 1-hour Futures data..."
+            )
+
+            df_1h = v1.fetch_history(
                 PAIR,
-                TREND_RESOLUTION,
+                "60",
                 days,
-                CHUNK_DAYS_1H,
+                v1.CHUNK_DAYS_1H,
             )
 
-            if df_1h.empty:
+            if df_1h is None or df_1h.empty:
 
                 raise RuntimeError(
                     "1-hour data empty."
@@ -597,22 +182,13 @@ def download_history():
 
             print()
             print(
-                "HISTORY DOWNLOAD SUCCESS"
-            )
-
-            print(
-                "5M CANDLES:",
-                len(df_5m),
-            )
-
-            print(
                 "1H CANDLES:",
-                len(df_1h),
+                len(df_1h)
             )
 
             return (
-                df_5m,
-                df_1h,
+                df_5m.copy(),
+                df_1h.copy(),
                 days,
             )
 
@@ -622,17 +198,13 @@ def download_history():
 
             print()
             print(
-                "History attempt failed:",
-                days
+                "HISTORY ATTEMPT FAILED:"
             )
 
-            print(
-                "ERROR:",
-                str(exc)
-            )
+            print(exc)
 
     raise RuntimeError(
-        "All history attempts failed. "
+        "All V17 history attempts failed. "
         f"Last error: {last_error}"
     )
 
@@ -643,21 +215,17 @@ def download_history():
 
 def ema(series, length):
 
-    return (
-        series
-        .ewm(
-            span=length,
-            adjust=False,
-        )
-        .mean()
-    )
+    return series.ewm(
+        span=length,
+        adjust=False,
+    ).mean()
 
 
 # ============================================================
 # RSI
 # ============================================================
 
-def rsi(series, length=14):
+def calculate_rsi(series, length=14):
 
     delta = series.diff()
 
@@ -665,10 +233,8 @@ def rsi(series, length=14):
         lower=0
     )
 
-    loss = (
-        -delta.clip(
-            upper=0
-        )
+    loss = -delta.clip(
+        upper=0
     )
 
     avg_gain = gain.ewm(
@@ -690,53 +256,51 @@ def rsi(series, length=14):
         )
     )
 
-    result = (
+    return (
         100.0
         -
         (
             100.0
             /
-            (
-                1.0
-                +
-                rs
-            )
+            (1.0 + rs)
         )
     )
-
-    return result
 
 
 # ============================================================
 # ATR
 # ============================================================
 
-def atr(df, length=14):
+def calculate_atr(df, length=14):
 
     previous_close = (
         df["close"]
         .shift(1)
     )
 
+    tr1 = (
+        df["high"]
+        -
+        df["low"]
+    )
+
+    tr2 = (
+        df["high"]
+        -
+        previous_close
+    ).abs()
+
+    tr3 = (
+        df["low"]
+        -
+        previous_close
+    ).abs()
+
     true_range = pd.concat(
         [
-            (
-                df["high"]
-                -
-                df["low"]
-            ),
-
-            (
-                df["high"]
-                -
-                previous_close
-            ).abs(),
-
-            (
-                df["low"]
-                -
-                previous_close
-            ).abs(),
+            tr1,
+            tr2,
+            tr3,
         ],
         axis=1,
     ).max(axis=1)
@@ -751,17 +315,17 @@ def atr(df, length=14):
 # ADX
 # ============================================================
 
-def adx(df, length=14):
+def calculate_adx(df, length=14):
 
     high = df["high"]
+
     low = df["low"]
+
     close = df["close"]
 
     up_move = high.diff()
 
-    down_move = (
-        -low.diff()
-    )
+    down_move = -low.diff()
 
     plus_dm = pd.Series(
         np.where(
@@ -884,113 +448,139 @@ def adx(df, length=14):
 
 def add_indicators(df):
 
-    df = df.copy()
+    data = df.copy()
 
-    df["ema20"] = ema(
-        df["close"],
+    data = (
+        data
+        .sort_values("datetime")
+        .reset_index(drop=True)
+    )
+
+    # --------------------------------------------------------
+    # EMA
+    # --------------------------------------------------------
+
+    data["ema20"] = ema(
+        data["close"],
         20,
     )
 
-    df["ema50"] = ema(
-        df["close"],
+    data["ema50"] = ema(
+        data["close"],
         50,
     )
 
-    df["ema200"] = ema(
-        df["close"],
+    data["ema200"] = ema(
+        data["close"],
         200,
     )
 
-    df["rsi"] = rsi(
-        df["close"],
+    # --------------------------------------------------------
+    # RSI
+    # --------------------------------------------------------
+
+    data["rsi"] = calculate_rsi(
+        data["close"],
         14,
     )
 
-    macd_fast = ema(
-        df["close"],
+    # --------------------------------------------------------
+    # MACD
+    # --------------------------------------------------------
+
+    ema12 = ema(
+        data["close"],
         12,
     )
 
-    macd_slow = ema(
-        df["close"],
+    ema26 = ema(
+        data["close"],
         26,
     )
 
-    df["macd"] = (
-        macd_fast
+    data["macd"] = (
+        ema12
         -
-        macd_slow
+        ema26
     )
 
-    df["macd_signal"] = ema(
-        df["macd"],
+    data["macd_signal"] = ema(
+        data["macd"],
         9,
     )
 
-    df["macd_hist"] = (
-        df["macd"]
+    data["macd_hist"] = (
+        data["macd"]
         -
-        df["macd_signal"]
+        data["macd_signal"]
     )
 
-    df["atr"] = atr(
-        df,
+    # --------------------------------------------------------
+    # ATR
+    # --------------------------------------------------------
+
+    data["atr"] = calculate_atr(
+        data,
         14,
     )
 
-    df["atr_pct"] = (
-        df["atr"]
+    data["atr_pct"] = (
+        data["atr"]
         /
-        df["close"]
+        data["close"]
         *
         100.0
     )
 
+    # --------------------------------------------------------
+    # ADX
+    # --------------------------------------------------------
+
     (
-        df["adx"],
-        df["plus_di"],
-        df["minus_di"],
-    ) = adx(
-        df,
+        data["adx"],
+        data["plus_di"],
+        data["minus_di"],
+    ) = calculate_adx(
+        data,
         14,
     )
 
     # --------------------------------------------------------
-    # Bollinger
+    # Bollinger Bands
     # --------------------------------------------------------
 
-    df["bb_mid"] = (
-        df["close"]
+    data["bb_middle"] = (
+        data["close"]
         .rolling(20)
         .mean()
     )
 
     bb_std = (
-        df["close"]
+        data["close"]
         .rolling(20)
         .std()
     )
 
-    df["bb_upper"] = (
-        df["bb_mid"]
+    data["bb_upper"] = (
+        data["bb_middle"]
         +
         2.0 * bb_std
     )
 
-    df["bb_lower"] = (
-        df["bb_mid"]
+    data["bb_lower"] = (
+        data["bb_middle"]
         -
         2.0 * bb_std
     )
 
-    df["bb_width_pct"] = (
+    data["bb_width_pct"] = (
         (
-            df["bb_upper"]
+            data["bb_upper"]
             -
-            df["bb_lower"]
+            data["bb_lower"]
         )
         /
-        df["bb_mid"].replace(
+        data["bb_middle"].replace(
             0,
             np.nan,
         )
@@ -998,17 +588,17 @@ def add_indicators(df):
         100.0
     )
 
-    df["bb_position"] = (
+    data["bb_position"] = (
         (
-            df["close"]
+            data["close"]
             -
-            df["bb_lower"]
+            data["bb_lower"]
         )
         /
         (
-            df["bb_upper"]
+            data["bb_upper"]
             -
-            df["bb_lower"]
+            data["bb_lower"]
         ).replace(
             0,
             np.nan,
@@ -1019,46 +609,46 @@ def add_indicators(df):
     # Volume
     # --------------------------------------------------------
 
-    df["volume_ma20"] = (
-        df["volume"]
+    data["volume_ma20"] = (
+        data["volume"]
         .rolling(20)
         .mean()
     )
 
-    df["volume_ratio"] = (
-        df["volume"]
+    data["volume_ratio"] = (
+        data["volume"]
         /
-        df["volume_ma20"].replace(
+        data["volume_ma20"].replace(
             0,
             np.nan,
         )
     )
 
     # --------------------------------------------------------
-    # Candle anatomy
+    # Candle features
     # --------------------------------------------------------
 
     candle_range = (
-        df["high"]
+        data["high"]
         -
-        df["low"]
+        data["low"]
     )
 
     body = (
-        df["close"]
+        data["close"]
         -
-        df["open"]
+        data["open"]
     ).abs()
 
-    df["range_pct"] = (
+    data["range_pct"] = (
         candle_range
         /
-        df["close"]
+        data["close"]
         *
         100.0
     )
 
-    df["body_ratio"] = (
+    data["body_ratio"] = (
         body
         /
         candle_range.replace(
@@ -1067,11 +657,11 @@ def add_indicators(df):
         )
     )
 
-    df["close_position"] = (
+    data["close_position"] = (
         (
-            df["close"]
+            data["close"]
             -
-            df["low"]
+            data["low"]
         )
         /
         candle_range.replace(
@@ -1080,14 +670,14 @@ def add_indicators(df):
         )
     )
 
-    df["lower_wick_ratio"] = (
+    data["lower_wick_ratio"] = (
         (
             np.minimum(
-                df["open"],
-                df["close"],
+                data["open"],
+                data["close"],
             )
             -
-            df["low"]
+            data["low"]
         )
         /
         candle_range.replace(
@@ -1096,13 +686,13 @@ def add_indicators(df):
         )
     )
 
-    df["upper_wick_ratio"] = (
+    data["upper_wick_ratio"] = (
         (
-            df["high"]
+            data["high"]
             -
             np.maximum(
-                df["open"],
-                df["close"],
+                data["open"],
+                data["close"],
             )
         )
         /
@@ -1113,75 +703,70 @@ def add_indicators(df):
     )
 
     # --------------------------------------------------------
-    # Slopes / momentum changes
+    # Momentum / slope
     # --------------------------------------------------------
 
-    df["ema20_slope_3"] = (
-        df["ema20"]
+    data["ema20_slope_3"] = (
+        data["ema20"]
         .pct_change(3)
         *
         100.0
     )
 
-    df["ema50_slope_3"] = (
-        df["ema50"]
-        .pct_change(3)
-        *
-        100.0
-    )
-
-    df["rsi_change_3"] = (
-        df["rsi"]
+    data["rsi_change_3"] = (
+        data["rsi"]
         -
-        df["rsi"].shift(3)
+        data["rsi"].shift(3)
     )
 
-    df["macd_change_3"] = (
-        df["macd_hist"]
+    data["macd_change_3"] = (
+        data["macd_hist"]
         -
-        df["macd_hist"].shift(3)
+        data["macd_hist"].shift(3)
     )
 
-    df["ema_distance_pct"] = (
+    data["ema_distance_pct"] = (
         (
-            df["ema20"]
+            data["ema20"]
             -
-            df["ema50"]
+            data["ema50"]
         )
         /
-        df["close"]
+        data["close"]
         *
         100.0
     )
 
-    return df
+    return data
 
 
 # ============================================================
-# PREPARE 1H
+# PREPARE 1H DATA
 # ============================================================
 
 def prepare_1h(df):
 
-    df = add_indicators(
+    data = add_indicators(
         df
     )
 
-    df = df[
-        [
-            "datetime",
-            "close",
-            "ema20",
-            "ema50",
-            "ema200",
-            "rsi",
-            "macd_hist",
-            "adx",
-            "atr_pct",
-        ]
+    keep = [
+        "datetime",
+        "close",
+        "ema20",
+        "ema50",
+        "ema200",
+        "rsi",
+        "macd_hist",
+        "adx",
+        "atr_pct",
+    ]
+
+    data = data[
+        keep
     ].copy()
 
-    df = df.rename(
+    data = data.rename(
         columns={
             "close":
                 "close_1h",
@@ -1209,14 +794,28 @@ def prepare_1h(df):
         }
     )
 
-    return df
+    # Use completed previous 1H candle only.
+
+    columns = [
+        c
+        for c in data.columns
+        if c != "datetime"
+    ]
+
+    data[
+        columns
+    ] = data[
+        columns
+    ].shift(1)
+
+    return data
 
 
 # ============================================================
-# PREPARE FULL DATA
+# PREPARE MARKET
 # ============================================================
 
-def prepare_data(
+def prepare_market(
     df_5m,
     df_1h,
 ):
@@ -1226,59 +825,40 @@ def prepare_data(
         "Calculating V17 indicators..."
     )
 
-    df_5m = add_indicators(
+    five = add_indicators(
         df_5m
     )
 
-    df_1h = prepare_1h(
+    hour = prepare_1h(
         df_1h
     )
 
-    df_5m = (
-        df_5m
+    five = (
+        five
         .sort_values("datetime")
         .reset_index(drop=True)
     )
 
-    df_1h = (
-        df_1h
+    hour = (
+        hour
         .sort_values("datetime")
         .reset_index(drop=True)
-    )
-
-    # ========================================================
-    # IMPORTANT:
-    # Shift 1H values by one completed 1H candle
-    # to avoid using unfinished higher-timeframe information.
-    # ========================================================
-
-    h1_columns = [
-        column
-        for column in df_1h.columns
-        if column != "datetime"
-    ]
-
-    df_1h[
-        h1_columns
-    ] = (
-        df_1h[
-            h1_columns
-        ]
-        .shift(1)
     )
 
     data = pd.merge_asof(
-        df_5m,
-        df_1h,
+        five,
+        hour,
         on="datetime",
         direction="backward",
     )
 
     # --------------------------------------------------------
-    # H1 EMA distance
+    # 1H EMA distance
     # --------------------------------------------------------
 
-    data["h1_ema_distance_pct"] = (
+    data[
+        "h1_ema_distance_pct"
+    ] = (
         (
             data["ema20_1h"]
             -
@@ -1291,27 +871,27 @@ def prepare_data(
     )
 
     # --------------------------------------------------------
-    # ATR percentile
-    #
-    # Rolling percentile-like rank using trailing 20 days.
-    # 20 days x 288 5m bars = 5760 bars.
+    # Rolling volatility reference
+    # Approx 20 days of 5m candles
     # --------------------------------------------------------
 
-    atr_window = 5760
-
-    data["atr_pct_median"] = (
+    data[
+        "atr_median"
+    ] = (
         data["atr_pct"]
         .rolling(
-            atr_window,
+            5760,
             min_periods=500,
         )
         .median()
     )
 
-    data["atr_pct_q75"] = (
+    data[
+        "atr_q75"
+    ] = (
         data["atr_pct"]
         .rolling(
-            atr_window,
+            5760,
             min_periods=500,
         )
         .quantile(0.75)
@@ -1321,18 +901,20 @@ def prepare_data(
     # Volatility regime
     # --------------------------------------------------------
 
-    data["VOL_REGIME"] = np.select(
+    data[
+        "VOL_REGIME"
+    ] = np.select(
         [
             (
                 data["atr_pct"]
                 <
-                data["atr_pct_median"]
+                data["atr_median"]
             ),
 
             (
                 data["atr_pct"]
                 >=
-                data["atr_pct_q75"]
+                data["atr_q75"]
             ),
         ],
         [
@@ -1398,7 +980,9 @@ def prepare_data(
         )
     )
 
-    data["TREND_REGIME"] = np.select(
+    data[
+        "TREND_REGIME"
+    ] = np.select(
         [
             uptrend,
             downtrend,
@@ -1414,18 +998,26 @@ def prepare_data(
     # Trend strength
     # --------------------------------------------------------
 
-    data["TREND_STRENGTH"] = np.select(
+    data[
+        "TREND_STRENGTH"
+    ] = np.select(
         [
             (
-                data["adx"] >= 25
+                data["adx"]
+                >=
+                25
             )
             &
             (
-                data["adx_1h"] >= 20
+                data["adx_1h"]
+                >=
+                20
             ),
 
             (
-                data["adx"] >= 18
+                data["adx"]
+                >=
+                18
             ),
         ],
         [
@@ -1472,9 +1064,6 @@ def prepare_data(
         "macd_hist_1h",
         "adx_1h",
         "h1_ema_distance_pct",
-        "TREND_REGIME",
-        "VOL_REGIME",
-        "TREND_STRENGTH",
     ]
 
     data = (
@@ -1485,22 +1074,29 @@ def prepare_data(
         .reset_index(drop=True)
     )
 
+    print()
     print(
         "USABLE 5M CANDLES:",
-        len(data),
+        len(data)
     )
 
     return data
 
 
 # ============================================================
-# BASE LONG SETUP
+# LONG ENTRY
 # ============================================================
 
-def long_setup(df, i):
+def long_signal(
+    data,
+    i,
+):
 
-    row = df.iloc[i]
-    prev = df.iloc[i - 1]
+    row = data.iloc[i]
+
+    previous = data.iloc[
+        i - 1
+    ]
 
     if (
         row["TREND_REGIME"]
@@ -1509,12 +1105,12 @@ def long_setup(df, i):
     ):
         return False
 
-    # Pullback/rejection inside uptrend
-
     pullback = (
         row["low"]
         <=
-        row["ema20"] * 1.003
+        row["ema20"]
+        *
+        1.003
     )
 
     reclaim = (
@@ -1526,12 +1122,14 @@ def long_setup(df, i):
     momentum = (
         row["macd_hist"]
         >
-        prev["macd_hist"]
+        previous["macd_hist"]
     )
 
     rsi_ok = (
+        row["rsi"]
+        >=
         40
-        <=
+        and
         row["rsi"]
         <=
         70
@@ -1543,7 +1141,7 @@ def long_setup(df, i):
         0.55
     )
 
-    trend_di = (
+    di_ok = (
         row["plus_di"]
         >
         row["minus_di"]
@@ -1560,18 +1158,24 @@ def long_setup(df, i):
         and
         candle_ok
         and
-        trend_di
+        di_ok
     )
 
 
 # ============================================================
-# BASE SHORT SETUP
+# SHORT ENTRY
 # ============================================================
 
-def short_setup(df, i):
+def short_signal(
+    data,
+    i,
+):
 
-    row = df.iloc[i]
-    prev = df.iloc[i - 1]
+    row = data.iloc[i]
+
+    previous = data.iloc[
+        i - 1
+    ]
 
     if (
         row["TREND_REGIME"]
@@ -1583,7 +1187,9 @@ def short_setup(df, i):
     pullback = (
         row["high"]
         >=
-        row["ema20"] * 0.997
+        row["ema20"]
+        *
+        0.997
     )
 
     rejection = (
@@ -1595,12 +1201,14 @@ def short_setup(df, i):
     momentum = (
         row["macd_hist"]
         <
-        prev["macd_hist"]
+        previous["macd_hist"]
     )
 
     rsi_ok = (
+        row["rsi"]
+        >=
         30
-        <=
+        and
         row["rsi"]
         <=
         60
@@ -1612,7 +1220,7 @@ def short_setup(df, i):
         0.45
     )
 
-    trend_di = (
+    di_ok = (
         row["minus_di"]
         >
         row["plus_di"]
@@ -1629,287 +1237,22 @@ def short_setup(df, i):
         and
         candle_ok
         and
-        trend_di
+        di_ok
     )
 
 
 # ============================================================
-# ATR TRADE SIMULATOR
+# COLLECT BASE EVENTS
 # ============================================================
 
-def simulate_atr_trade(
-    df,
-    index,
-    side,
-    tp_atr,
-    sl_atr,
+def collect_events(
+    data
 ):
 
-    row = df.iloc[index]
-
-    entry = safe_float(
-        row["close"]
-    )
-
-    atr_value = safe_float(
-        row["atr"]
-    )
-
-    if (
-        pd.isna(entry)
-        or
-        pd.isna(atr_value)
-        or
-        entry <= 0
-        or
-        atr_value <= 0
-    ):
-        return None
-
-    tp_distance = (
-        atr_value
-        *
-        tp_atr
-    )
-
-    sl_distance = (
-        atr_value
-        *
-        sl_atr
-    )
-
-    if side == "LONG":
-
-        tp_price = (
-            entry
-            +
-            tp_distance
-        )
-
-        sl_price = (
-            entry
-            -
-            sl_distance
-        )
-
-    else:
-
-        tp_price = (
-            entry
-            -
-            tp_distance
-        )
-
-        sl_price = (
-            entry
-            +
-            sl_distance
-        )
-
-    end_index = min(
-        index + MAX_HOLD_BARS,
-        len(df) - 1,
-    )
-
-    if end_index <= index:
-        return None
-
-    future = (
-        df
-        .iloc[
-            index + 1:
-            end_index + 1
-        ]
-        .copy()
-    )
-
-    if future.empty:
-        return None
-
-    outcome = "TIME_EXIT"
-
-    exit_price = safe_float(
-        future.iloc[-1]["close"]
-    )
-
-    exit_bars = len(future)
-
-    for offset, (_, bar) in enumerate(
-        future.iterrows(),
-        start=1,
-    ):
-
-        high = safe_float(
-            bar["high"]
-        )
-
-        low = safe_float(
-            bar["low"]
-        )
-
-        if side == "LONG":
-
-            hit_tp = (
-                high >= tp_price
-            )
-
-            hit_sl = (
-                low <= sl_price
-            )
-
-        else:
-
-            hit_tp = (
-                low <= tp_price
-            )
-
-            hit_sl = (
-                high >= sl_price
-            )
-
-        if hit_tp and hit_sl:
-
-            if SAME_BAR_POLICY == "SL_FIRST":
-
-                outcome = "LOSS"
-                exit_price = sl_price
-
-            else:
-
-                outcome = "WIN"
-                exit_price = tp_price
-
-            exit_bars = offset
-            break
-
-        if hit_tp:
-
-            outcome = "WIN"
-            exit_price = tp_price
-            exit_bars = offset
-            break
-
-        if hit_sl:
-
-            outcome = "LOSS"
-            exit_price = sl_price
-            exit_bars = offset
-            break
-
-    observed = (
-        future
-        .iloc[:exit_bars]
-        .copy()
-    )
-
-    max_high = safe_float(
-        observed["high"].max()
-    )
-
-    min_low = safe_float(
-        observed["low"].min()
-    )
-
-    if side == "LONG":
-
-        raw_return = (
-            (
-                exit_price / entry
-            )
-            -
-            1.0
-        ) * 100.0
-
-        mfe = (
-            (
-                max_high / entry
-            )
-            -
-            1.0
-        ) * 100.0
-
-        mae = (
-            (
-                min_low / entry
-            )
-            -
-            1.0
-        ) * 100.0
-
-    else:
-
-        raw_return = (
-            (
-                entry / exit_price
-            )
-            -
-            1.0
-        ) * 100.0
-
-        mfe = (
-            (
-                entry / min_low
-            )
-            -
-            1.0
-        ) * 100.0
-
-        mae = -(
-            (
-                max_high / entry
-            )
-            -
-            1.0
-        ) * 100.0
-
-    net_return = (
-        raw_return
-        -
-        ROUND_TRIP_COST_PCT
-    )
-
-    return {
-        "OUTCOME": outcome,
-
-        "EXIT_BARS":
-            int(exit_bars),
-
-        "RAW_RETURN_%":
-            round(
-                raw_return,
-                4,
-            ),
-
-        "NET_RETURN_%":
-            round(
-                net_return,
-                4,
-            ),
-
-        "MFE_%":
-            round(
-                mfe,
-                4,
-            ),
-
-        "MAE_%":
-            round(
-                mae,
-                4,
-            ),
-    }
-
-
-# ============================================================
-# COLLECT SIGNAL EVENTS
-# ============================================================
-
-def collect_events(df):
-
-    events = []
+    rows = []
 
     last_index = (
-        len(df)
+        len(data)
         -
         MAX_HOLD_BARS
         -
@@ -1921,28 +1264,31 @@ def collect_events(df):
         last_index,
     ):
 
-        row = df.iloc[i]
-
         side = None
 
-        if long_setup(
-            df,
+        if long_signal(
+            data,
             i,
         ):
+
             side = "LONG"
 
-        elif short_setup(
-            df,
+        elif short_signal(
+            data,
             i,
         ):
+
             side = "SHORT"
 
         if side is None:
             continue
 
-        events.append(
+        row = data.iloc[i]
+
+        rows.append(
             {
-                "DATA_INDEX": i,
+                "DATA_INDEX":
+                    i,
 
                 "TIME":
                     row["datetime"],
@@ -2010,33 +1356,6 @@ def collect_events(df):
                         row["macd_hist_1h"]
                     ),
 
-                "MACD_CHANGE_3":
-                    safe_float(
-                        row["macd_change_3"]
-                    ),
-
-                "RSI_CHANGE_3":
-                    safe_float(
-                        row["rsi_change_3"]
-                    ),
-
-                "EMA_DISTANCE_PCT":
-                    safe_float(
-                        row["ema_distance_pct"]
-                    ),
-
-                "H1_EMA_DISTANCE_PCT":
-                    safe_float(
-                        row[
-                            "h1_ema_distance_pct"
-                        ]
-                    ),
-
-                "EMA20_SLOPE_3":
-                    safe_float(
-                        row["ema20_slope_3"]
-                    ),
-
                 "BB_WIDTH_PCT":
                     safe_float(
                         row["bb_width_pct"]
@@ -2052,16 +1371,6 @@ def collect_events(df):
                         row["volume_ratio"]
                     ),
 
-                "RANGE_PCT":
-                    safe_float(
-                        row["range_pct"]
-                    ),
-
-                "BODY_RATIO":
-                    safe_float(
-                        row["body_ratio"]
-                    ),
-
                 "CLOSE_POSITION":
                     safe_float(
                         row["close_position"]
@@ -2069,26 +1378,32 @@ def collect_events(df):
 
                 "LOWER_WICK_RATIO":
                     safe_float(
-                        row["lower_wick_ratio"]
+                        row[
+                            "lower_wick_ratio"
+                        ]
                     ),
 
                 "UPPER_WICK_RATIO":
                     safe_float(
-                        row["upper_wick_ratio"]
+                        row[
+                            "upper_wick_ratio"
+                        ]
                     ),
             }
         )
 
     events = pd.DataFrame(
-        events
+        rows
     )
 
     if not events.empty:
 
-        events["TIME"] = pd.to_datetime(
-            events["TIME"],
-            utc=True,
-            errors="coerce",
+        events["TIME"] = (
+            pd.to_datetime(
+                events["TIME"],
+                utc=True,
+                errors="coerce",
+            )
         )
 
         events = (
@@ -2101,266 +1416,308 @@ def collect_events(df):
 
 
 # ============================================================
-# CHRONOLOGICAL SPLIT
+# TRADE SIMULATOR
 # ============================================================
 
-def split_events(events):
-
-    events = (
-        events
-        .sort_values("TIME")
-        .reset_index(drop=True)
-        .copy()
-    )
-
-    total = len(events)
-
-    discovery_end = int(
-        total
-        *
-        DISCOVERY_RATIO
-    )
-
-    selection_end = int(
-        total
-        *
-        (
-            DISCOVERY_RATIO
-            +
-            SELECTION_RATIO
-        )
-    )
-
-    discovery = (
-        events
-        .iloc[:discovery_end]
-        .copy()
-        .reset_index(drop=True)
-    )
-
-    selection = (
-        events
-        .iloc[
-            discovery_end:
-            selection_end
-        ]
-        .copy()
-        .reset_index(drop=True)
-    )
-
-    holdout = (
-        events
-        .iloc[
-            selection_end:
-        ]
-        .copy()
-        .reset_index(drop=True)
-    )
-
-    discovery["DATASET"] = (
-        "DISCOVERY"
-    )
-
-    selection["DATASET"] = (
-        "SELECTION"
-    )
-
-    holdout["DATASET"] = (
-        "FINAL_HOLDOUT"
-    )
-
-    return (
-        discovery,
-        selection,
-        holdout,
-    )
-
-
-# ============================================================
-# CANDIDATE DEFINITIONS
-# ============================================================
-
-def build_candidates():
-
-    candidates = []
-
-    for side in [
-        "LONG",
-        "SHORT",
-    ]:
-
-        candidates.extend(
-            [
-                {
-                    "NAME":
-                        f"V17_{side}_BASE",
-
-                    "SIDE":
-                        side,
-
-                    "VOL":
-                        None,
-
-                    "STRENGTH":
-                        None,
-                },
-
-                {
-                    "NAME":
-                        f"V17_{side}_LOW_VOL",
-
-                    "SIDE":
-                        side,
-
-                    "VOL":
-                        "LOW_VOL",
-
-                    "STRENGTH":
-                        None,
-                },
-
-                {
-                    "NAME":
-                        f"V17_{side}_NORMAL_VOL",
-
-                    "SIDE":
-                        side,
-
-                    "VOL":
-                        "NORMAL_VOL",
-
-                    "STRENGTH":
-                        None,
-                },
-
-                {
-                    "NAME":
-                        f"V17_{side}_HIGH_VOL",
-
-                    "SIDE":
-                        side,
-
-                    "VOL":
-                        "HIGH_VOL",
-
-                    "STRENGTH":
-                        None,
-                },
-
-                {
-                    "NAME":
-                        f"V17_{side}_MEDIUM_TREND",
-
-                    "SIDE":
-                        side,
-
-                    "VOL":
-                        None,
-
-                    "STRENGTH":
-                        "MEDIUM",
-                },
-
-                {
-                    "NAME":
-                        f"V17_{side}_STRONG_TREND",
-
-                    "SIDE":
-                        side,
-
-                    "VOL":
-                        None,
-
-                    "STRENGTH":
-                        "STRONG",
-                },
-
-                {
-                    "NAME":
-                        f"V17_{side}_NORMAL_STRONG",
-
-                    "SIDE":
-                        side,
-
-                    "VOL":
-                        "NORMAL_VOL",
-
-                    "STRENGTH":
-                        "STRONG",
-                },
-
-                {
-                    "NAME":
-                        f"V17_{side}_HIGH_STRONG",
-
-                    "SIDE":
-                        side,
-
-                    "VOL":
-                        "HIGH_VOL",
-
-                    "STRENGTH":
-                        "STRONG",
-                },
-            ]
-        )
-
-    return candidates
-
-
-# ============================================================
-# FILTER CANDIDATE
-# ============================================================
-
-def filter_candidate(
-    events,
-    candidate,
+def simulate_trade(
+    market,
+    index,
+    side,
+    tp_atr,
+    sl_atr,
 ):
 
-    filtered = (
-        events[
-            events["SIDE"]
-            ==
-            candidate["SIDE"]
-        ]
-        .copy()
+    row = market.iloc[
+        index
+    ]
+
+    entry = safe_float(
+        row["close"]
     )
 
-    if candidate[
-        "VOL"
-    ] is not None:
+    atr_value = safe_float(
+        row["atr"]
+    )
 
-        filtered = (
-            filtered[
-                filtered["VOL_REGIME"]
-                ==
-                candidate["VOL"]
-            ]
-            .copy()
+    if (
+        pd.isna(entry)
+        or
+        pd.isna(atr_value)
+        or
+        entry <= 0
+        or
+        atr_value <= 0
+    ):
+
+        return None
+
+    tp_distance = (
+        atr_value
+        *
+        tp_atr
+    )
+
+    sl_distance = (
+        atr_value
+        *
+        sl_atr
+    )
+
+    if side == "LONG":
+
+        tp_price = (
+            entry
+            +
+            tp_distance
         )
 
-    if candidate[
-        "STRENGTH"
-    ] is not None:
-
-        filtered = (
-            filtered[
-                filtered[
-                    "TREND_STRENGTH"
-                ]
-                ==
-                candidate[
-                    "STRENGTH"
-                ]
-            ]
-            .copy()
+        sl_price = (
+            entry
+            -
+            sl_distance
         )
 
-    return filtered
+    else:
+
+        tp_price = (
+            entry
+            -
+            tp_distance
+        )
+
+        sl_price = (
+            entry
+            +
+            sl_distance
+        )
+
+    end_index = min(
+        index
+        +
+        MAX_HOLD_BARS,
+        len(market) - 1,
+    )
+
+    future = market.iloc[
+        index + 1:
+        end_index + 1
+    ]
+
+    if future.empty:
+        return None
+
+    outcome = "TIME_EXIT"
+
+    exit_price = safe_float(
+        future.iloc[-1][
+            "close"
+        ]
+    )
+
+    bars_held = len(
+        future
+    )
+
+    for number, (_, bar) in enumerate(
+        future.iterrows(),
+        start=1,
+    ):
+
+        high = safe_float(
+            bar["high"]
+        )
+
+        low = safe_float(
+            bar["low"]
+        )
+
+        if side == "LONG":
+
+            tp_hit = (
+                high >= tp_price
+            )
+
+            sl_hit = (
+                low <= sl_price
+            )
+
+        else:
+
+            tp_hit = (
+                low <= tp_price
+            )
+
+            sl_hit = (
+                high >= sl_price
+            )
+
+        if tp_hit and sl_hit:
+
+            if (
+                SAME_BAR_POLICY
+                ==
+                "SL_FIRST"
+            ):
+
+                outcome = "LOSS"
+
+                exit_price = (
+                    sl_price
+                )
+
+            else:
+
+                outcome = "WIN"
+
+                exit_price = (
+                    tp_price
+                )
+
+            bars_held = number
+
+            break
+
+        if tp_hit:
+
+            outcome = "WIN"
+
+            exit_price = (
+                tp_price
+            )
+
+            bars_held = number
+
+            break
+
+        if sl_hit:
+
+            outcome = "LOSS"
+
+            exit_price = (
+                sl_price
+            )
+
+            bars_held = number
+
+            break
+
+    observed = future.iloc[
+        :bars_held
+    ]
+
+    max_high = safe_float(
+        observed["high"].max()
+    )
+
+    min_low = safe_float(
+        observed["low"].min()
+    )
+
+    if side == "LONG":
+
+        raw_return = (
+            (
+                exit_price
+                /
+                entry
+            )
+            -
+            1.0
+        ) * 100.0
+
+        mfe = (
+            (
+                max_high
+                /
+                entry
+            )
+            -
+            1.0
+        ) * 100.0
+
+        mae = (
+            (
+                min_low
+                /
+                entry
+            )
+            -
+            1.0
+        ) * 100.0
+
+    else:
+
+        raw_return = (
+            (
+                entry
+                /
+                exit_price
+            )
+            -
+            1.0
+        ) * 100.0
+
+        mfe = (
+            (
+                entry
+                /
+                min_low
+            )
+            -
+            1.0
+        ) * 100.0
+
+        mae = -(
+            (
+                max_high
+                /
+                entry
+            )
+            -
+            1.0
+        ) * 100.0
+
+    net_return = (
+        raw_return
+        -
+        ROUND_TRIP_COST_PCT
+    )
+
+    return {
+        "OUTCOME":
+            outcome,
+
+        "EXIT_BARS":
+            bars_held,
+
+        "RAW_RETURN_%":
+            round(
+                raw_return,
+                4,
+            ),
+
+        "NET_RETURN_%":
+            round(
+                net_return,
+                4,
+            ),
+
+        "MFE_%":
+            round(
+                mfe,
+                4,
+            ),
+
+        "MAE_%":
+            round(
+                mae,
+                4,
+            ),
+    }
 
 
 # ============================================================
-# RESIMULATE
+# RESIMULATE EVENTS
 # ============================================================
 
 def resimulate(
@@ -2373,17 +1730,17 @@ def resimulate(
 
     rows = []
 
-    for _, event in events.iterrows():
+    for _, event in (
+        events.iterrows()
+    ):
 
-        index = int(
-            event[
-                "DATA_INDEX"
-            ]
-        )
-
-        result = simulate_atr_trade(
+        result = simulate_trade(
             market,
-            index,
+            int(
+                event[
+                    "DATA_INDEX"
+                ]
+            ),
             side,
             tp_atr,
             sl_atr,
@@ -2392,14 +1749,16 @@ def resimulate(
         if result is None:
             continue
 
-        row = event.to_dict()
+        output = (
+            event.to_dict()
+        )
 
-        row.update(
+        output.update(
             result
         )
 
         rows.append(
-            row
+            output
         )
 
     return pd.DataFrame(
@@ -2408,63 +1767,29 @@ def resimulate(
 
 
 # ============================================================
-# MAX DRAWDOWN
-# ============================================================
-
-def max_drawdown(
-    returns,
-):
-
-    if len(returns) == 0:
-        return np.nan
-
-    equity = (
-        pd.Series(returns)
-        .fillna(0.0)
-        .cumsum()
-    )
-
-    peak = (
-        equity
-        .cummax()
-    )
-
-    drawdown = (
-        equity
-        -
-        peak
-    )
-
-    return abs(
-        float(
-            drawdown.min()
-        )
-    )
-
-
-# ============================================================
 # PERFORMANCE
 # ============================================================
 
-def performance(df):
+def performance(
+    trades
+):
 
-    if df.empty:
+    if trades.empty:
         return None
 
-    returns = (
-        pd.to_numeric(
-            df["NET_RETURN_%"],
-            errors="coerce",
-        )
-        .dropna()
-    )
+    returns = pd.to_numeric(
+        trades[
+            "NET_RETURN_%"
+        ],
+        errors="coerce",
+    ).dropna()
 
     if returns.empty:
         return None
 
     wins = int(
         (
-            df["OUTCOME"]
+            trades["OUTCOME"]
             ==
             "WIN"
         ).sum()
@@ -2472,7 +1797,7 @@ def performance(df):
 
     losses = int(
         (
-            df["OUTCOME"]
+            trades["OUTCOME"]
             ==
             "LOSS"
         ).sum()
@@ -2480,7 +1805,7 @@ def performance(df):
 
     time_exits = int(
         (
-            df["OUTCOME"]
+            trades["OUTCOME"]
             ==
             "TIME_EXIT"
         ).sum()
@@ -2503,19 +1828,16 @@ def performance(df):
         )
 
     else:
+
         win_rate = np.nan
 
-    positive = (
-        returns[
-            returns > 0
-        ]
-    )
+    positive = returns[
+        returns > 0
+    ]
 
-    negative = (
-        returns[
-            returns < 0
-        ]
-    )
+    negative = returns[
+        returns < 0
+    ]
 
     gross_profit = float(
         positive.sum()
@@ -2529,7 +1851,7 @@ def performance(df):
 
     if gross_loss > 0:
 
-        pf = (
+        profit_factor = (
             gross_profit
             /
             gross_loss
@@ -2537,29 +1859,41 @@ def performance(df):
 
     elif gross_profit > 0:
 
-        pf = 999.0
+        profit_factor = (
+            999.0
+        )
 
     else:
 
-        pf = 0.0
+        profit_factor = (
+            0.0
+        )
 
-    average_win = (
-        positive.mean()
-        if not positive.empty
-        else 0.0
+    equity = (
+        returns
+        .cumsum()
     )
 
-    average_loss = (
-        abs(
-            negative.mean()
+    peak = (
+        equity
+        .cummax()
+    )
+
+    drawdown = (
+        equity
+        -
+        peak
+    )
+
+    max_drawdown = abs(
+        float(
+            drawdown.min()
         )
-        if not negative.empty
-        else 0.0
     )
 
     return {
         "TRADES":
-            len(df),
+            len(trades),
 
         "DECISIVE":
             decisive,
@@ -2589,12 +1923,6 @@ def performance(df):
                 4,
             ),
 
-        "NET_MEDIAN_RETURN_%":
-            round(
-                returns.median(),
-                4,
-            ),
-
         "TOTAL_NET_RETURN_%":
             round(
                 returns.sum(),
@@ -2603,34 +1931,20 @@ def performance(df):
 
         "PROFIT_FACTOR":
             round(
-                pf,
-                4,
-            ),
-
-        "AVG_WIN_%":
-            round(
-                average_win,
-                4,
-            ),
-
-        "AVG_LOSS_%":
-            round(
-                average_loss,
+                profit_factor,
                 4,
             ),
 
         "MAX_DRAWDOWN_%":
             round(
-                max_drawdown(
-                    returns.tolist()
-                ),
+                max_drawdown,
                 4,
             ),
 
         "AVG_MFE_%":
             round(
                 pd.to_numeric(
-                    df["MFE_%"],
+                    trades["MFE_%"],
                     errors="coerce",
                 ).mean(),
                 4,
@@ -2639,7 +1953,7 @@ def performance(df):
         "AVG_MAE_%":
             round(
                 pd.to_numeric(
-                    df["MAE_%"],
+                    trades["MAE_%"],
                     errors="coerce",
                 ).mean(),
                 4,
@@ -2648,10 +1962,227 @@ def performance(df):
 
 
 # ============================================================
-# DISCOVERY TEST
+# SPLIT EVENTS
 # ============================================================
 
-def discovery_test(
+def split_events(
+    events
+):
+
+    events = (
+        events
+        .sort_values("TIME")
+        .reset_index(drop=True)
+        .copy()
+    )
+
+    total = len(
+        events
+    )
+
+    discovery_end = int(
+        total
+        *
+        DISCOVERY_RATIO
+    )
+
+    selection_end = int(
+        total
+        *
+        (
+            DISCOVERY_RATIO
+            +
+            SELECTION_RATIO
+        )
+    )
+
+    discovery = (
+        events
+        .iloc[
+            :discovery_end
+        ]
+        .copy()
+    )
+
+    selection = (
+        events
+        .iloc[
+            discovery_end:
+            selection_end
+        ]
+        .copy()
+    )
+
+    holdout = (
+        events
+        .iloc[
+            selection_end:
+        ]
+        .copy()
+    )
+
+    discovery[
+        "DATASET"
+    ] = "DISCOVERY"
+
+    selection[
+        "DATASET"
+    ] = "SELECTION"
+
+    holdout[
+        "DATASET"
+    ] = "FINAL_HOLDOUT"
+
+    return (
+        discovery.reset_index(
+            drop=True
+        ),
+
+        selection.reset_index(
+            drop=True
+        ),
+
+        holdout.reset_index(
+            drop=True
+        ),
+    )
+
+
+# ============================================================
+# CANDIDATES
+# ============================================================
+
+def build_candidates():
+
+    candidates = []
+
+    for side in [
+        "LONG",
+        "SHORT",
+    ]:
+
+        definitions = [
+            (
+                "BASE",
+                None,
+                None,
+            ),
+
+            (
+                "LOW_VOL",
+                "LOW_VOL",
+                None,
+            ),
+
+            (
+                "NORMAL_VOL",
+                "NORMAL_VOL",
+                None,
+            ),
+
+            (
+                "HIGH_VOL",
+                "HIGH_VOL",
+                None,
+            ),
+
+            (
+                "MEDIUM_TREND",
+                None,
+                "MEDIUM",
+            ),
+
+            (
+                "STRONG_TREND",
+                None,
+                "STRONG",
+            ),
+
+            (
+                "NORMAL_STRONG",
+                "NORMAL_VOL",
+                "STRONG",
+            ),
+
+            (
+                "HIGH_STRONG",
+                "HIGH_VOL",
+                "STRONG",
+            ),
+        ]
+
+        for (
+            name,
+            volatility,
+            strength,
+        ) in definitions:
+
+            candidates.append(
+                {
+                    "NAME":
+                        f"V17_{side}_{name}",
+
+                    "SIDE":
+                        side,
+
+                    "VOL":
+                        volatility,
+
+                    "STRENGTH":
+                        strength,
+                }
+            )
+
+    return candidates
+
+
+# ============================================================
+# FILTER CANDIDATE
+# ============================================================
+
+def filter_candidate(
+    events,
+    candidate,
+):
+
+    output = events[
+        events["SIDE"]
+        ==
+        candidate["SIDE"]
+    ].copy()
+
+    if (
+        candidate["VOL"]
+        is not None
+    ):
+
+        output = output[
+            output["VOL_REGIME"]
+            ==
+            candidate["VOL"]
+        ].copy()
+
+    if (
+        candidate["STRENGTH"]
+        is not None
+    ):
+
+        output = output[
+            output["TREND_STRENGTH"]
+            ==
+            candidate[
+                "STRENGTH"
+            ]
+        ].copy()
+
+    return output
+
+
+# ============================================================
+# DISCOVERY
+# ============================================================
+
+def run_discovery(
     market,
     discovery,
     candidates,
@@ -2661,16 +2192,17 @@ def discovery_test(
 
     for candidate in candidates:
 
-        filtered = filter_candidate(
+        base = filter_candidate(
             discovery,
             candidate,
         )
 
         if (
-            len(filtered)
+            len(base)
             <
             MIN_DISCOVERY_TRADES
         ):
+
             continue
 
         for tp_atr in (
@@ -2681,9 +2213,9 @@ def discovery_test(
                 ATR_SL_MULTIPLIERS
             ):
 
-                simulated = resimulate(
+                trades = resimulate(
                     market,
-                    filtered,
+                    base,
                     candidate[
                         "SIDE"
                     ],
@@ -2692,14 +2224,15 @@ def discovery_test(
                 )
 
                 if (
-                    len(simulated)
+                    len(trades)
                     <
                     MIN_DISCOVERY_TRADES
                 ):
+
                     continue
 
                 stats = performance(
-                    simulated
+                    trades
                 )
 
                 if stats is None:
@@ -2746,7 +2279,7 @@ def discovery_test(
         result = (
             result
             .sort_values(
-                by=[
+                [
                     "NET_AVG_RETURN_%",
                     "PROFIT_FACTOR",
                     "TRADES",
@@ -2779,16 +2312,17 @@ def find_candidate(
             ==
             name
         ):
+
             return candidate
 
     return None
 
 
 # ============================================================
-# SELECTION TEST
+# SELECTION
 # ============================================================
 
-def selection_test(
+def run_selection(
     market,
     selection,
     discovery_results,
@@ -2796,15 +2330,10 @@ def selection_test(
 ):
 
     if discovery_results.empty:
+
         return pd.DataFrame()
 
-    # ========================================================
-    # Limit selection exposure.
-    #
-    # Top 10 discovery configs per side only.
-    # ========================================================
-
-    shortlist_frames = []
+    shortlists = []
 
     for side in [
         "LONG",
@@ -2823,18 +2352,20 @@ def selection_test(
             .copy()
         )
 
-        shortlist_frames.append(
+        shortlists.append(
             side_results
         )
 
     shortlist = pd.concat(
-        shortlist_frames,
+        shortlists,
         ignore_index=True,
     )
 
     rows = []
 
-    for _, config in shortlist.iterrows():
+    for _, config in (
+        shortlist.iterrows()
+    ):
 
         candidate = find_candidate(
             candidates,
@@ -2846,38 +2377,33 @@ def selection_test(
         if candidate is None:
             continue
 
-        filtered = filter_candidate(
+        base = filter_candidate(
             selection,
             candidate,
         )
 
         if (
-            len(filtered)
+            len(base)
             <
             MIN_SELECTION_TRADES
         ):
+
             continue
 
-        simulated = resimulate(
+        trades = resimulate(
             market,
-            filtered,
-            candidate[
-                "SIDE"
-            ],
+            base,
+            candidate["SIDE"],
             float(
-                config[
-                    "TP_ATR"
-                ]
+                config["TP_ATR"]
             ),
             float(
-                config[
-                    "SL_ATR"
-                ]
+                config["SL_ATR"]
             ),
         )
 
         stats = performance(
-            simulated
+            trades
         )
 
         if stats is None:
@@ -2886,19 +2412,13 @@ def selection_test(
         rows.append(
             {
                 "CANDIDATE":
-                    candidate[
-                        "NAME"
-                    ],
+                    candidate["NAME"],
 
                 "SIDE":
-                    candidate[
-                        "SIDE"
-                    ],
+                    candidate["SIDE"],
 
                 "VOL_REGIME":
-                    candidate[
-                        "VOL"
-                    ],
+                    candidate["VOL"],
 
                 "TREND_STRENGTH":
                     candidate[
@@ -2906,25 +2426,13 @@ def selection_test(
                     ],
 
                 "TP_ATR":
-                    float(
-                        config[
-                            "TP_ATR"
-                        ]
-                    ),
+                    config["TP_ATR"],
 
                 "SL_ATR":
-                    float(
-                        config[
-                            "SL_ATR"
-                        ]
-                    ),
+                    config["SL_ATR"],
 
                 "DISCOVERY_TRADES":
-                    int(
-                        config[
-                            "TRADES"
-                        ]
-                    ),
+                    config["TRADES"],
 
                 "DISCOVERY_WIN_RATE_%":
                     config[
@@ -2942,9 +2450,7 @@ def selection_test(
                     ],
 
                 "SELECTION_TRADES":
-                    stats[
-                        "TRADES"
-                    ],
+                    stats["TRADES"],
 
                 "SELECTION_WIN_RATE_%":
                     stats[
@@ -2977,7 +2483,7 @@ def selection_test(
         result = (
             result
             .sort_values(
-                by=[
+                [
                     "SELECTION_NET_AVG_%",
                     "SELECTION_PF",
                     "SELECTION_TRADES",
@@ -2995,16 +2501,17 @@ def selection_test(
 
 
 # ============================================================
-# LOCK ONE STRATEGY PER SIDE
+# LOCK BEST ONE PER SIDE
 # ============================================================
 
-def lock_candidates(
-    selection_results,
+def lock_strategies(
+    selection_results
 ):
 
     locked = []
 
     if selection_results.empty:
+
         return locked
 
     for side in [
@@ -3012,71 +2519,52 @@ def lock_candidates(
         "SHORT",
     ]:
 
-        side_results = (
+        data = selection_results[
             selection_results[
-                selection_results[
-                    "SIDE"
+                "SIDE"
+            ]
+            ==
+            side
+        ].copy()
+
+        data = data[
+            (
+                data[
+                    "SELECTION_TRADES"
                 ]
-                ==
-                side
-            ]
-            .copy()
-        )
+                >=
+                MIN_SELECTION_TRADES
+            )
+            &
+            (
+                data[
+                    "SELECTION_NET_AVG_%"
+                ]
+                >
+                0
+            )
+            &
+            (
+                data[
+                    "SELECTION_PF"
+                ]
+                >=
+                1.05
+            )
+        ].copy()
 
-        if side_results.empty:
+        if data.empty:
             continue
 
-        eligible = (
-            side_results[
-                (
-                    side_results[
-                        "SELECTION_TRADES"
-                    ]
-                    >=
-                    SELECTION_MIN_TRADES
-                )
-                &
-                (
-                    side_results[
-                        "SELECTION_NET_AVG_%"
-                    ]
-                    >
-                    SELECTION_MIN_NET_AVG
-                )
-                &
-                (
-                    side_results[
-                        "SELECTION_PF"
-                    ]
-                    >=
-                    SELECTION_MIN_PF
-                )
-            ]
-            .copy()
-        )
-
-        if eligible.empty:
-            continue
-
-        # ----------------------------------------------------
-        # Combined robustness score.
-        #
-        # Expectancy first.
-        # Profit factor second.
-        # Sample size adds modest support.
-        # ----------------------------------------------------
-
-        eligible[
-            "LOCK_SCORE"
-        ] = (
-            eligible[
+        data["LOCK_SCORE"] = (
+            data[
                 "SELECTION_NET_AVG_%"
             ]
             *
             100.0
             +
             (
-                eligible[
+                data[
                     "SELECTION_PF"
                 ]
                 -
@@ -3086,16 +2574,16 @@ def lock_candidates(
             10.0
             +
             np.log1p(
-                eligible[
+                data[
                     "SELECTION_TRADES"
                 ]
             )
         )
 
-        eligible = (
-            eligible
+        data = (
+            data
             .sort_values(
-                by=[
+                [
                     "LOCK_SCORE",
                     "SELECTION_NET_AVG_%",
                     "SELECTION_PF",
@@ -3110,39 +2598,30 @@ def lock_candidates(
         )
 
         locked.append(
-            eligible.iloc[0].to_dict()
+            data.iloc[0].to_dict()
         )
 
     return locked
 
 
 # ============================================================
-# CALENDAR BLOCKS
+# FINAL CALENDAR BLOCKS
 # ============================================================
 
-def calendar_blocks(
-    events,
-    number_of_blocks,
+def make_calendar_blocks(
+    events
 ):
 
     if events.empty:
         return []
 
-    times = pd.to_datetime(
-        events["TIME"],
-        utc=True,
-        errors="coerce",
-    )
+    start = events[
+        "TIME"
+    ].min()
 
-    start = times.min()
-    end = times.max()
-
-    if (
-        pd.isna(start)
-        or
-        pd.isna(end)
-    ):
-        return []
+    end = events[
+        "TIME"
+    ].max()
 
     if start == end:
 
@@ -3156,26 +2635,30 @@ def calendar_blocks(
     edges = pd.date_range(
         start=start,
         end=end,
-        periods=number_of_blocks + 1,
+        periods=FINAL_BLOCKS + 1,
     )
 
-    blocks = []
+    output = []
 
     for i in range(
-        number_of_blocks
+        FINAL_BLOCKS
     ):
 
         if (
             i
             ==
-            number_of_blocks - 1
+            FINAL_BLOCKS - 1
         ):
 
             mask = (
-                (times >= edges[i])
+                (
+                    events["TIME"]
+                    >=
+                    edges[i]
+                )
                 &
                 (
-                    times
+                    events["TIME"]
                     <=
                     edges[i + 1]
                 )
@@ -3184,16 +2667,20 @@ def calendar_blocks(
         else:
 
             mask = (
-                (times >= edges[i])
+                (
+                    events["TIME"]
+                    >=
+                    edges[i]
+                )
                 &
                 (
-                    times
+                    events["TIME"]
                     <
                     edges[i + 1]
                 )
             )
 
-        blocks.append(
+        output.append(
             (
                 i + 1,
                 events[
@@ -3202,48 +2689,21 @@ def calendar_blocks(
             )
         )
 
-    return blocks
+    return output
 
 
 # ============================================================
-# FINAL CLASSIFICATION
+# CLASSIFY FINAL
 # ============================================================
 
-def classify_final(row):
-
-    trades = int(
-        row["HOLDOUT_TRADES"]
-    )
-
-    net_avg = safe_float(
-        row[
-            "HOLDOUT_NET_AVG_%"
-        ]
-    )
-
-    pf = safe_float(
-        row[
-            "HOLDOUT_PF"
-        ]
-    )
-
-    max_dd = safe_float(
-        row[
-            "HOLDOUT_MAX_DD_%"
-        ]
-    )
-
-    positive_blocks = int(
-        row[
-            "POSITIVE_BLOCKS"
-        ]
-    )
-
-    valid_blocks = int(
-        row[
-            "VALID_BLOCKS"
-        ]
-    )
+def classify(
+    trades,
+    net_avg,
+    pf,
+    positive_blocks,
+    valid_blocks,
+    max_dd,
+):
 
     if (
         trades
@@ -3310,18 +2770,19 @@ def classify_final(row):
 
 
 # ============================================================
-# FINAL HOLDOUT TEST
+# FINAL HOLDOUT
 # ============================================================
 
-def final_test(
+def run_final(
     market,
     holdout,
     locked,
     candidates,
 ):
 
-    summary_rows = []
-    block_rows = []
+    summaries = []
+
+    blocks_output = []
 
     for config in locked:
 
@@ -3335,58 +2796,52 @@ def final_test(
         if candidate is None:
             continue
 
-        filtered = filter_candidate(
+        base = filter_candidate(
             holdout,
             candidate,
         )
 
-        simulated = resimulate(
+        trades = resimulate(
             market,
-            filtered,
-            candidate[
-                "SIDE"
-            ],
+            base,
+            candidate["SIDE"],
             float(
-                config[
-                    "TP_ATR"
-                ]
+                config["TP_ATR"]
             ),
             float(
-                config[
-                    "SL_ATR"
-                ]
+                config["SL_ATR"]
             ),
         )
 
         stats = performance(
-            simulated
+            trades
         )
 
         if stats is None:
             continue
 
         positive_blocks = 0
+
         valid_blocks = 0
 
         for (
             block_number,
             block_events,
-        ) in calendar_blocks(
-            holdout,
-            FINAL_BLOCKS,
+        ) in make_calendar_blocks(
+            holdout
         ):
 
-            block_filtered = (
+            block_base = (
                 filter_candidate(
                     block_events,
                     candidate,
                 )
             )
 
-            block_simulated = (
+            block_trades = (
                 resimulate(
                     market,
-                    block_filtered,
+                    block_base,
                     candidate[
                         "SIDE"
                     ],
@@ -3403,13 +2858,15 @@ def final_test(
                 )
             )
 
-            block_stats = performance(
-                block_simulated
+            block_stats = (
+                performance(
+                    block_trades
+                )
             )
 
             if block_stats is None:
 
-                block_rows.append(
+                blocks_output.append(
                     {
                         "CANDIDATE":
                             candidate[
@@ -3426,26 +2883,12 @@ def final_test(
 
                         "TRADES":
                             0,
-
-                        "NET_AVG_RETURN_%":
-                            np.nan,
-
-                        "PROFIT_FACTOR":
-                            np.nan,
                     }
                 )
 
                 continue
 
-            if (
-                block_stats[
-                    "TRADES"
-                ]
-                >
-                0
-            ):
-
-                valid_blocks += 1
+            valid_blocks += 1
 
             if (
                 block_stats[
@@ -3457,7 +2900,7 @@ def final_test(
 
                 positive_blocks += 1
 
-            block_rows.append(
+            blocks_output.append(
                 {
                     "CANDIDATE":
                         candidate[
@@ -3472,177 +2915,164 @@ def final_test(
                     "BLOCK":
                         block_number,
 
-                    "TRADES":
-                        block_stats[
-                            "TRADES"
-                        ],
-
-                    "WIN_RATE_%":
-                        block_stats[
-                            "WIN_RATE_%"
-                        ],
-
-                    "NET_AVG_RETURN_%":
-                        block_stats[
-                            "NET_AVG_RETURN_%"
-                        ],
-
-                    "PROFIT_FACTOR":
-                        block_stats[
-                            "PROFIT_FACTOR"
-                        ],
-
-                    "MAX_DRAWDOWN_%":
-                        block_stats[
-                            "MAX_DRAWDOWN_%"
-                        ],
+                    **block_stats,
                 }
             )
 
-        row = {
-            "CANDIDATE":
-                candidate[
-                    "NAME"
-                ],
-
-            "SIDE":
-                candidate[
-                    "SIDE"
-                ],
-
-            "VOL_REGIME":
-                candidate[
-                    "VOL"
-                ],
-
-            "TREND_STRENGTH":
-                candidate[
-                    "STRENGTH"
-                ],
-
-            "TP_ATR":
-                config[
-                    "TP_ATR"
-                ],
-
-            "SL_ATR":
-                config[
-                    "SL_ATR"
-                ],
-
-            "DISCOVERY_TRADES":
-                config[
-                    "DISCOVERY_TRADES"
-                ],
-
-            "DISCOVERY_NET_AVG_%":
-                config[
-                    "DISCOVERY_NET_AVG_%"
-                ],
-
-            "DISCOVERY_PF":
-                config[
-                    "DISCOVERY_PF"
-                ],
-
-            "SELECTION_TRADES":
-                config[
-                    "SELECTION_TRADES"
-                ],
-
-            "SELECTION_NET_AVG_%":
-                config[
-                    "SELECTION_NET_AVG_%"
-                ],
-
-            "SELECTION_PF":
-                config[
-                    "SELECTION_PF"
-                ],
-
-            "HOLDOUT_TRADES":
-                stats[
-                    "TRADES"
-                ],
-
-            "HOLDOUT_DECISIVE":
-                stats[
-                    "DECISIVE"
-                ],
-
-            "HOLDOUT_WINS":
-                stats[
-                    "WINS"
-                ],
-
-            "HOLDOUT_LOSSES":
-                stats[
-                    "LOSSES"
-                ],
-
-            "HOLDOUT_TIME_EXITS":
-                stats[
-                    "TIME_EXITS"
-                ],
-
-            "HOLDOUT_WIN_RATE_%":
-                stats[
-                    "WIN_RATE_%"
-                ],
-
-            "HOLDOUT_NET_AVG_%":
-                stats[
-                    "NET_AVG_RETURN_%"
-                ],
-
-            "HOLDOUT_TOTAL_NET_%":
-                stats[
-                    "TOTAL_NET_RETURN_%"
-                ],
-
-            "HOLDOUT_PF":
-                stats[
-                    "PROFIT_FACTOR"
-                ],
-
-            "HOLDOUT_MAX_DD_%":
-                stats[
-                    "MAX_DRAWDOWN_%"
-                ],
-
-            "HOLDOUT_AVG_MFE_%":
-                stats[
-                    "AVG_MFE_%"
-                ],
-
-            "HOLDOUT_AVG_MAE_%":
-                stats[
-                    "AVG_MAE_%"
-                ],
-
-            "POSITIVE_BLOCKS":
-                positive_blocks,
-
-            "VALID_BLOCKS":
-                valid_blocks,
-        }
-
-        row["STATUS"] = (
-            classify_final(
-                row
-            )
+        status = classify(
+            stats["TRADES"],
+            stats[
+                "NET_AVG_RETURN_%"
+            ],
+            stats[
+                "PROFIT_FACTOR"
+            ],
+            positive_blocks,
+            valid_blocks,
+            stats[
+                "MAX_DRAWDOWN_%"
+            ],
         )
 
-        summary_rows.append(
-            row
+        summaries.append(
+            {
+                "STATUS":
+                    status,
+
+                "CANDIDATE":
+                    candidate[
+                        "NAME"
+                    ],
+
+                "SIDE":
+                    candidate[
+                        "SIDE"
+                    ],
+
+                "VOL_REGIME":
+                    candidate[
+                        "VOL"
+                    ],
+
+                "TREND_STRENGTH":
+                    candidate[
+                        "STRENGTH"
+                    ],
+
+                "TP_ATR":
+                    config[
+                        "TP_ATR"
+                    ],
+
+                "SL_ATR":
+                    config[
+                        "SL_ATR"
+                    ],
+
+                "DISCOVERY_TRADES":
+                    config[
+                        "DISCOVERY_TRADES"
+                    ],
+
+                "DISCOVERY_NET_AVG_%":
+                    config[
+                        "DISCOVERY_NET_AVG_%"
+                    ],
+
+                "DISCOVERY_PF":
+                    config[
+                        "DISCOVERY_PF"
+                    ],
+
+                "SELECTION_TRADES":
+                    config[
+                        "SELECTION_TRADES"
+                    ],
+
+                "SELECTION_NET_AVG_%":
+                    config[
+                        "SELECTION_NET_AVG_%"
+                    ],
+
+                "SELECTION_PF":
+                    config[
+                        "SELECTION_PF"
+                    ],
+
+                "HOLDOUT_TRADES":
+                    stats[
+                        "TRADES"
+                    ],
+
+                "HOLDOUT_DECISIVE":
+                    stats[
+                        "DECISIVE"
+                    ],
+
+                "HOLDOUT_WINS":
+                    stats[
+                        "WINS"
+                    ],
+
+                "HOLDOUT_LOSSES":
+                    stats[
+                        "LOSSES"
+                    ],
+
+                "HOLDOUT_TIME_EXITS":
+                    stats[
+                        "TIME_EXITS"
+                    ],
+
+                "HOLDOUT_WIN_RATE_%":
+                    stats[
+                        "WIN_RATE_%"
+                    ],
+
+                "HOLDOUT_NET_AVG_%":
+                    stats[
+                        "NET_AVG_RETURN_%"
+                    ],
+
+                "HOLDOUT_TOTAL_NET_%":
+                    stats[
+                        "TOTAL_NET_RETURN_%"
+                    ],
+
+                "HOLDOUT_PF":
+                    stats[
+                        "PROFIT_FACTOR"
+                    ],
+
+                "HOLDOUT_MAX_DD_%":
+                    stats[
+                        "MAX_DRAWDOWN_%"
+                    ],
+
+                "HOLDOUT_AVG_MFE_%":
+                    stats[
+                        "AVG_MFE_%"
+                    ],
+
+                "HOLDOUT_AVG_MAE_%":
+                    stats[
+                        "AVG_MAE_%"
+                    ],
+
+                "POSITIVE_BLOCKS":
+                    positive_blocks,
+
+                "VALID_BLOCKS":
+                    valid_blocks,
+            }
         )
 
     return (
         pd.DataFrame(
-            summary_rows
+            summaries
         ),
         pd.DataFrame(
-            block_rows
+            blocks_output
         ),
     )
 
@@ -3714,11 +3144,15 @@ def main():
     print()
 
     print(
-        "V17 DOES NOT OPTIMIZE"
+        "IMPORTANT:"
     )
 
     print(
-        "FOR HIGH WIN RATE ALONE."
+        "V17 DOES NOT OPTIMIZE FOR"
+    )
+
+    print(
+        "HIGH WIN RATE ALONE."
     )
 
     print()
@@ -3745,9 +3179,9 @@ def main():
         "NO REAL ORDERS WILL BE PLACED."
     )
 
-    # ========================================================
-    # HISTORY
-    # ========================================================
+    # --------------------------------------------------------
+    # Download
+    # --------------------------------------------------------
 
     (
         df_5m,
@@ -3762,11 +3196,11 @@ def main():
         "DAYS"
     )
 
-    # ========================================================
-    # PREPARE
-    # ========================================================
+    # --------------------------------------------------------
+    # Market preparation
+    # --------------------------------------------------------
 
-    market = prepare_data(
+    market = prepare_market(
         df_5m,
         df_1h,
     )
@@ -3810,9 +3244,9 @@ def main():
         .to_string()
     )
 
-    # ========================================================
-    # EVENTS
-    # ========================================================
+    # --------------------------------------------------------
+    # Events
+    # --------------------------------------------------------
 
     print()
     print(
@@ -3825,12 +3259,9 @@ def main():
 
     if events.empty:
 
-        print()
-        print(
-            "NO V17 SIGNAL EVENTS FOUND."
+        raise RuntimeError(
+            "No V17 base events found."
         )
-
-        return
 
     print()
     print(
@@ -3860,9 +3291,9 @@ def main():
         )
     )
 
-    # ========================================================
-    # SPLIT
-    # ========================================================
+    # --------------------------------------------------------
+    # Chronological split
+    # --------------------------------------------------------
 
     (
         discovery,
@@ -3900,30 +3331,44 @@ def main():
 
     print(
         "DISCOVERY RANGE:",
-        discovery["TIME"].min(),
+        discovery[
+            "TIME"
+        ].min(),
         "->",
-        discovery["TIME"].max(),
+        discovery[
+            "TIME"
+        ].max(),
     )
 
     print(
         "SELECTION RANGE:",
-        selection["TIME"].min(),
+        selection[
+            "TIME"
+        ].min(),
         "->",
-        selection["TIME"].max(),
+        selection[
+            "TIME"
+        ].max(),
     )
 
     print(
         "FINAL HOLDOUT RANGE:",
-        holdout["TIME"].min(),
+        holdout[
+            "TIME"
+        ].min(),
         "->",
-        holdout["TIME"].max(),
+        holdout[
+            "TIME"
+        ].max(),
     )
 
-    # ========================================================
-    # CANDIDATES
-    # ========================================================
+    # --------------------------------------------------------
+    # Discovery
+    # --------------------------------------------------------
 
-    candidates = build_candidates()
+    candidates = (
+        build_candidates()
+    )
 
     print()
     print(
@@ -3931,21 +3376,13 @@ def main():
         len(candidates)
     )
 
-    # ========================================================
-    # DISCOVERY
-    # ========================================================
-
     print()
     print(
-        "Testing ATR TP/SL"
-    )
-
-    print(
-        "on DISCOVERY data only..."
+        "Running DISCOVERY..."
     )
 
     discovery_results = (
-        discovery_test(
+        run_discovery(
             market,
             discovery,
             candidates,
@@ -3960,7 +3397,10 @@ def main():
         )
     )
 
-    if not discovery_results.empty:
+    if (
+        not
+        discovery_results.empty
+    ):
 
         print()
         print(
@@ -3977,21 +3417,21 @@ def main():
             )
         )
 
-    # ========================================================
-    # SELECTION
-    # ========================================================
+    # --------------------------------------------------------
+    # Selection
+    # --------------------------------------------------------
 
     print()
-    print(
-        "Testing shortlist"
-    )
+    print("=" * 120)
 
     print(
-        "on SEPARATE SELECTION data..."
+        "SELECTION TEST"
     )
+
+    print("=" * 120)
 
     selection_results = (
-        selection_test(
+        run_selection(
             market,
             selection,
             discovery_results,
@@ -3999,12 +3439,10 @@ def main():
         )
     )
 
-    if not selection_results.empty:
-
-        print()
-        print(
-            "SELECTION RESULTS:"
-        )
+    if (
+        not
+        selection_results.empty
+    ):
 
         print()
 
@@ -4019,18 +3457,18 @@ def main():
 
         print()
         print(
-            "NO candidate had enough"
+            "NO STRATEGY SURVIVED"
         )
 
         print(
-            "selection sample."
+            "TO SELECTION SAMPLE."
         )
 
-    # ========================================================
-    # LOCK
-    # ========================================================
+    # --------------------------------------------------------
+    # Lock
+    # --------------------------------------------------------
 
-    locked = lock_candidates(
+    locked = lock_strategies(
         selection_results
     )
 
@@ -4056,7 +3494,7 @@ def main():
         )
 
         print(
-            "BE USED TO RESCUE IT."
+            "BE USED TO RESCUE A FAILED STRATEGY."
         )
 
     else:
@@ -4076,20 +3514,6 @@ def main():
                 "SIDE:",
                 config[
                     "SIDE"
-                ]
-            )
-
-            print(
-                "VOL:",
-                config[
-                    "VOL_REGIME"
-                ]
-            )
-
-            print(
-                "TREND STRENGTH:",
-                config[
-                    "TREND_STRENGTH"
                 ]
             )
 
@@ -4128,21 +3552,25 @@ def main():
                 ]
             )
 
-    # ========================================================
-    # FINAL HOLDOUT
-    # ========================================================
+    # --------------------------------------------------------
+    # Final untouched holdout
+    # --------------------------------------------------------
 
     if locked:
 
         print()
+        print("=" * 120)
+
         print(
-            "Opening FINAL UNTOUCHED HOLDOUT..."
+            "OPENING FINAL UNTOUCHED HOLDOUT"
         )
+
+        print("=" * 120)
 
         (
             final_results,
             final_blocks,
-        ) = final_test(
+        ) = run_final(
             market,
             holdout,
             locked,
@@ -4159,11 +3587,11 @@ def main():
             pd.DataFrame()
         )
 
-    # ========================================================
-    # SAVE
-    # ========================================================
+    # --------------------------------------------------------
+    # Save files
+    # --------------------------------------------------------
 
-    combined_events = pd.concat(
+    all_events = pd.concat(
         [
             discovery,
             selection,
@@ -4172,7 +3600,7 @@ def main():
         ignore_index=True,
     )
 
-    combined_events.to_csv(
+    all_events.to_csv(
         EVENT_FILE,
         index=False,
     )
@@ -4207,14 +3635,18 @@ def main():
     print("=" * 120)
 
     print(EVENT_FILE)
+
     print(DISCOVERY_FILE)
+
     print(SELECTION_FILE)
+
     print(FINAL_BLOCK_FILE)
+
     print(SUMMARY_FILE)
 
-    # ========================================================
-    # FINAL RESULTS
-    # ========================================================
+    # --------------------------------------------------------
+    # Final report
+    # --------------------------------------------------------
 
     print()
     print("=" * 160)
@@ -4248,9 +3680,6 @@ def main():
             )
         )
 
-        print()
-        print("=" * 160)
-
         pass_count = int(
             (
                 final_results[
@@ -4281,6 +3710,9 @@ def main():
             ).sum()
         )
 
+        print()
+        print("=" * 120)
+
         print(
             "PASS:",
             pass_count
@@ -4296,11 +3728,14 @@ def main():
             reject_count
         )
 
+        print("=" * 120)
+
         for _, row in (
             final_results.iterrows()
         ):
 
             print()
+
             print("-" * 100)
 
             print(
@@ -4369,7 +3804,7 @@ def main():
             )
 
             print(
-                "HOLDOUT MAX DRAWDOWN:",
+                "HOLDOUT MAX DD:",
                 row[
                     "HOLDOUT_MAX_DD_%"
                 ],
@@ -4385,10 +3820,6 @@ def main():
                 FINAL_BLOCKS,
             )
 
-    # ========================================================
-    # INTERPRETATION
-    # ========================================================
-
     print()
     print("=" * 120)
 
@@ -4401,43 +3832,27 @@ def main():
     print()
 
     print(
-        "PASS:"
+        "PASS = candidate may proceed"
     )
 
     print(
-        "Positive expectancy survived"
-    )
-
-    print(
-        "the untouched final holdout."
-    )
-
-    print(
-        "PASS is PAPER-TRADING candidate only."
+        "to PAPER TRADING only."
     )
 
     print()
 
     print(
-        "WATCH:"
+        "WATCH = promising but"
     )
 
     print(
-        "Promising but sample or"
-    )
-
-    print(
-        "consistency is not strong enough."
+        "not strong enough."
     )
 
     print()
 
     print(
-        "REJECT:"
-    )
-
-    print(
-        "Do not use this strategy live."
+        "REJECT = do not use live."
     )
 
     print()
@@ -4447,11 +3862,11 @@ def main():
     )
 
     print(
-        "we will NOT force another"
+        "we will not force"
     )
 
     print(
-        "high win-rate filter."
+        "a high-win-rate strategy."
     )
 
     print()
@@ -4469,6 +3884,10 @@ def main():
 
     print("=" * 120)
 
+
+# ============================================================
+# START
+# ============================================================
 
 if __name__ == "__main__":
 
