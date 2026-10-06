@@ -1,6 +1,6 @@
 {
   "created_utc": "2026-10-05T16:40:19.361494+00:00",
-  "updated_utc": "2026-10-06T00:40:17.218026+00:00",
+  "updated_utc": "2026-10-06T00:59:22.322958+00:00",
   "history_days": 180,
   "historical_interval": "15m",
   "spike_pct": 3.0,
@@ -3801,6 +3801,231 @@
         "candle_move_pct": {
           "median": 0.477071,
           "scale": 0.682481
+        }
+      }
+    },
+    "ORDIUSDT": {
+      "pair": "B-ORDI_USDT",
+      "volume_24h_usdt": 10301532.24,
+      "trained_utc": "2026-10-06T00:57:45.624630+00:00",
+      "buy": {
+        "event_count": 328,
+        "rsi": {
+          "median": 50.026621,
+          "scale": 15.458198
+        },
+        "macd_hist_pct": {
+          "median": 0.02256,
+          "scale": 0.246724
+        },
+        "ema_gap_pct": {
+          "median": 0.17819,
+          "scale": 1.283321
+        },
+        "price_vs_bb_middle_pct": {
+          "median": -0.013773,
+          "scale": 2.220871
+        },
+        "bb_width_pct": {
+          "median": 4.601669,
+          "scale": 2.860822
+        },
+        "volume_ratio": {
+          "median": 0.937576,
+          "scale": 0.721308
+        },
+        "price_vs_poc_pct": {
+          "median": -0.007058,
+          "scale": 4.142892
+        },
+        "candle_move_pct": {
+          "median": -0.361063,
+          "scale": 0.716232
+        }
+      },
+      "sell": {
+        "event_count": 309,
+        "rsi": {
+          "median": 53.79935,
+          "scale": 14.743464
+        },
+        "macd_hist_pct": {
+          "median": 0.05862,
+          "scale": 0.277724
+        },
+        "ema_gap_pct": {
+          "median": 0.118253,
+          "scale": 1.401536
+        },
+        "price_vs_bb_middle_pct": {
+          "median": 0.473328,
+          "scale": 2.371998
+        },
+        "bb_width_pct": {
+          "median": 4.831827,
+          "scale": 3.403441
+        },
+        "volume_ratio": {
+          "median": 0.898427,
+          "scale": 0.752869
+        },
+        "price_vs_poc_pct": {
+          "median": 0.312391,
+          "scale": 3.92
+        },
+        "candle_move_pct": {
+          "median": 0.447691,
+          "scale": 0.800911
+        }
+      }
+    },
+    "CAKEUSDT": {
+      "pair": "B-CAKE_USDT",
+      "volume_24h_usdt": 10128797.36,
+      "trained_utc": "2026-10-06T00:58:34.481329+00:00",
+      "buy": {
+        "event_count": 66,
+        "rsi": {
+          "median": 50.244755,
+          "scale": 16.456926
+        },
+        "macd_hist_pct": {
+          "median": -0.054756,
+          "scale": 0.12392
+        },
+        "ema_gap_pct": {
+          "median": 0.271264,
+          "scale": 0.625068
+        },
+        "price_vs_bb_middle_pct": {
+          "median": -0.122509,
+          "scale": 0.962335
+        },
+        "bb_width_pct": {
+          "median": 2.29365,
+          "scale": 1.489711
+        },
+        "volume_ratio": {
+          "median": 0.895164,
+          "scale": 0.851274
+        },
+        "price_vs_poc_pct": {
+          "median": 0.186061,
+          "scale": 1.469089
+        },
+        "candle_move_pct": {
+          "median": -0.144432,
+          "scale": 0.368071
+        }
+      },
+      "sell": {
+        "event_count": 51,
+        "rsi": {
+          "median": 50.117462,
+          "scale": 15.114917
+        },
+        "macd_hist_pct": {
+          "median": 0.025119,
+          "scale": 0.11533
+        },
+        "ema_gap_pct": {
+          "median": -0.016224,
+          "scale": 0.731027
+        },
+        "price_vs_bb_middle_pct": {
+          "median": 0.050847,
+          "scale": 1.053285
+        },
+        "bb_width_pct": {
+          "median": 2.56886,
+          "scale": 1.547376
+        },
+        "volume_ratio": {
+          "median": 1.00151,
+          "scale": 0.860182
+        },
+        "price_vs_poc_pct": {
+          "median": 0.157437,
+          "scale": 2.021421
+        },
+        "candle_move_pct": {
+          "median": 0.244051,
+          "scale": 0.459762
+        }
+      }
+    },
+    "GNOUSDT": {
+      "pair": "B-GNO_USDT",
+      "volume_24h_usdt": 9146753.54,
+      "trained_utc": "2026-10-06T00:59:22.322905+00:00",
+      "buy": {
+        "event_count": 86,
+        "rsi": {
+          "median": 48.821677,
+          "scale": 12.627032
+        },
+        "macd_hist_pct": {
+          "median": -0.047265,
+          "scale": 0.128234
+        },
+        "ema_gap_pct": {
+          "median": 0.08112,
+          "scale": 0.581603
+        },
+        "price_vs_bb_middle_pct": {
+          "median": -0.185201,
+          "scale": 1.016695
+        },
+        "bb_width_pct": {
+          "median": 2.508953,
+          "scale": 1.744959
+        },
+        "volume_ratio": {
+          "median": 0.846917,
+          "scale": 0.83101
+        },
+        "price_vs_poc_pct": {
+          "median": -0.267217,
+          "scale": 1.897112
+        },
+        "candle_move_pct": {
+          "median": -0.117102,
+          "scale": 0.484183
+        }
+      },
+      "sell": {
+        "event_count": 61,
+        "rsi": {
+          "median": 55.014885,
+          "scale": 15.518515
+        },
+        "macd_hist_pct": {
+          "median": 0.046344,
+          "scale": 0.161141
+        },
+        "ema_gap_pct": {
+          "median": 0.150776,
+          "scale": 0.617921
+        },
+        "price_vs_bb_middle_pct": {
+          "median": 0.214558,
+          "scale": 1.153599
+        },
+        "bb_width_pct": {
+          "median": 2.794224,
+          "scale": 2.538318
+        },
+        "volume_ratio": {
+          "median": 1.277117,
+          "scale": 1.478688
+        },
+        "price_vs_poc_pct": {
+          "median": 0.169191,
+          "scale": 3.439176
+        },
+        "candle_move_pct": {
+          "median": 0.212021,
+          "scale": 0.570502
         }
       }
     }
