@@ -1,0 +1,52 @@
+name: Crypto Futures Historical V15
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: crypto-futures-historical-v15
+  cancel-in-progress: true
+
+jobs:
+  futures-historical-v15:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas numpy requests
+
+      - name: Run Futures Historical V15
+        run: |
+          python crypto_futures_historical_v15.py
+
+      - name: Save V15 Results
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add crypto_futures_v15_events.csv 2>/dev/null || true
+          git add crypto_futures_v15_discovery.csv 2>/dev/null || true
+          git add crypto_futures_v15_results.csv 2>/dev/null || true
+          git add crypto_futures_v15_summary.csv 2>/dev/null || true
+
+          if ! git diff --cached --quiet; then
+            git commit -m "Update futures historical V15 results"
+            git pull --rebase origin main
+            git push origin main
+          else
+            echo "No V15 result changes to save."
+          fi
