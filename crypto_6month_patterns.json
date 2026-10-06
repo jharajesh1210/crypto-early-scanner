@@ -1,6 +1,6 @@
 {
   "created_utc": "2026-10-05T16:40:19.361494+00:00",
-  "updated_utc": "2026-10-06T07:41:31.868149+00:00",
+  "updated_utc": "2026-10-06T08:01:13.998721+00:00",
   "history_days": 180,
   "historical_interval": "15m",
   "spike_pct": 3.0,
@@ -4558,6 +4558,156 @@
         "candle_move_pct": {
           "median": 1.26923,
           "scale": 2.335123
+        }
+      }
+    },
+    "LPTUSDT": {
+      "pair": "B-LPT_USDT",
+      "volume_24h_usdt": 5687577.52,
+      "trained_utc": "2026-10-06T08:00:13.029005+00:00",
+      "buy": {
+        "event_count": 124,
+        "rsi": {
+          "median": 49.613366,
+          "scale": 13.614243
+        },
+        "macd_hist_pct": {
+          "median": -0.009715,
+          "scale": 0.161752
+        },
+        "ema_gap_pct": {
+          "median": 0.159914,
+          "scale": 0.980292
+        },
+        "price_vs_bb_middle_pct": {
+          "median": -0.030291,
+          "scale": 1.364476
+        },
+        "bb_width_pct": {
+          "median": 3.360715,
+          "scale": 2.0508
+        },
+        "volume_ratio": {
+          "median": 0.964156,
+          "scale": 0.808147
+        },
+        "price_vs_poc_pct": {
+          "median": -0.390784,
+          "scale": 2.203081
+        },
+        "candle_move_pct": {
+          "median": -0.183732,
+          "scale": 0.503483
+        }
+      },
+      "sell": {
+        "event_count": 120,
+        "rsi": {
+          "median": 52.944627,
+          "scale": 15.031214
+        },
+        "macd_hist_pct": {
+          "median": 0.032447,
+          "scale": 0.196234
+        },
+        "ema_gap_pct": {
+          "median": 0.125253,
+          "scale": 0.995429
+        },
+        "price_vs_bb_middle_pct": {
+          "median": 0.166142,
+          "scale": 1.59825
+        },
+        "bb_width_pct": {
+          "median": 3.87693,
+          "scale": 2.622001
+        },
+        "volume_ratio": {
+          "median": 1.121577,
+          "scale": 1.186143
+        },
+        "price_vs_poc_pct": {
+          "median": 0.094349,
+          "scale": 2.745666
+        },
+        "candle_move_pct": {
+          "median": 0.284092,
+          "scale": 0.54529
+        }
+      }
+    },
+    "API3USDT": {
+      "pair": "B-API3_USDT",
+      "volume_24h_usdt": 5647618.05,
+      "trained_utc": "2026-10-06T08:01:13.998641+00:00",
+      "buy": {
+        "event_count": 167,
+        "rsi": {
+          "median": 51.888353,
+          "scale": 15.818211
+        },
+        "macd_hist_pct": {
+          "median": 0.016823,
+          "scale": 0.201404
+        },
+        "ema_gap_pct": {
+          "median": 0.160968,
+          "scale": 0.876349
+        },
+        "price_vs_bb_middle_pct": {
+          "median": 0.006637,
+          "scale": 1.501923
+        },
+        "bb_width_pct": {
+          "median": 3.239973,
+          "scale": 2.111763
+        },
+        "volume_ratio": {
+          "median": 0.936007,
+          "scale": 0.803891
+        },
+        "price_vs_poc_pct": {
+          "median": -0.182859,
+          "scale": 3.238556
+        },
+        "candle_move_pct": {
+          "median": -0.271739,
+          "scale": 0.595023
+        }
+      },
+      "sell": {
+        "event_count": 153,
+        "rsi": {
+          "median": 55.532685,
+          "scale": 16.916167
+        },
+        "macd_hist_pct": {
+          "median": 0.071756,
+          "scale": 0.214818
+        },
+        "ema_gap_pct": {
+          "median": 0.226444,
+          "scale": 1.211287
+        },
+        "price_vs_bb_middle_pct": {
+          "median": 0.590829,
+          "scale": 2.052405
+        },
+        "bb_width_pct": {
+          "median": 4.019368,
+          "scale": 3.231255
+        },
+        "volume_ratio": {
+          "median": 0.886978,
+          "scale": 0.860236
+        },
+        "price_vs_poc_pct": {
+          "median": 0.388199,
+          "scale": 3.915881
+        },
+        "candle_move_pct": {
+          "median": 0.492914,
+          "scale": 0.85855
         }
       }
     }
