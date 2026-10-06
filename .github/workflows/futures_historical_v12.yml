@@ -1,0 +1,51 @@
+name: Crypto Futures Historical V12
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: crypto-futures-historical-v12
+  cancel-in-progress: true
+
+jobs:
+  futures-historical-v12:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas numpy requests
+
+      - name: Run Futures Historical V12
+        run: |
+          python crypto_futures_historical_v12.py
+
+      - name: Save V12 Results
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add crypto_futures_v12_events.csv 2>/dev/null || true
+          git add crypto_futures_v12_results.csv 2>/dev/null || true
+          git add crypto_futures_v12_summary.csv 2>/dev/null || true
+
+          if ! git diff --cached --quiet; then
+            git commit -m "Update futures historical V12 results"
+            git pull --rebase origin main
+            git push origin main
+          else
+            echo "No V12 result changes to save."
+          fi
