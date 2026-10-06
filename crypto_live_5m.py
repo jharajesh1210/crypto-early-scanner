@@ -1202,21 +1202,18 @@ def analyze_symbol(
         confirmations = sell_count
         conditions = sell_conditions
 
-    if signal is None:
-        return None
-       candle_time = pd.to_datetime(
-    row["datetime"],
-    utc=True
-)
+        if signal is None:
+            return None
 
-    close_time = (
-        candle_time
-        +
-        pd.Timedelta(
-            minutes=5
+        candle_time = pd.to_datetime(
+            row["datetime"],
+            utc=True
         )
-    )
 
+        close_time = (
+            candle_time
+            + pd.Timedelta(minutes=5)
+        )
     passed = [
         name
         for name, value
