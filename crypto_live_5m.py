@@ -1204,7 +1204,7 @@ def analyze_symbol(
 
     if signal is None:
         return None
-
+print("DEBUG TIME VALUE:", row["time"], "TYPE:", type(row["time"]))
     candle_time = pd.to_datetime(
         row["time"],
         unit="s",
