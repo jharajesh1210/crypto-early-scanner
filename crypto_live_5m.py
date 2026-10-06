@@ -1477,19 +1477,18 @@ def save_alert(
 
 def alert_message(row):
 
-    utc_time = pd.to_datetime(
-        row["TIME"],
-        utc=True
-    )
+   raw_time = row["TIME"]
 
-    ist_time = (
-        utc_time
-        +
-        pd.Timedelta(
-            hours=5,
-            minutes=30
-        )
-    )
+if isinstance(raw_time, (int, float, np.integer, np.floating)):
+    # CoinDCX timestamps can be milliseconds
+    if raw_time > 10_000_000_000:
+        utc_time = pd.to_datetime(raw_time, unit="ms", utc=True)
+    else:
+        utc_time = pd.to_datetime(raw_time, unit="s", utc=True)
+else:
+    utc_time = pd.to_datetime(raw_time, utc=True)
+
+ist_time = utc_time.tz_convert("Asia/Kolkata")
 
     time_text = ist_time.strftime(
         "%d-%m-%Y %I:%M %p"
