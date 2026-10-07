@@ -1,0 +1,261 @@
+name: Crypto Futures Historical V19
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: crypto-futures-historical-v19
+  cancel-in-progress: false
+
+jobs:
+  historical-v19:
+    runs-on: ubuntu-latest
+
+    # Multi-coin historical scan can take time
+    timeout-minutes: 360
+
+    steps:
+
+      # ==========================================
+      # 1. CHECKOUT REPOSITORY
+      # ==========================================
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ==========================================
+      # 2. SETUP PYTHON
+      # ==========================================
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # ==========================================
+      # 3. INSTALL PACKAGES
+      # ==========================================
+      - name: Install Python packages
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas numpy requests
+
+      # ==========================================
+      # 4. CHECK V19 FILE
+      # ==========================================
+      - name: Check V19 file
+        run: |
+          echo "Checking V19 Python file..."
+          ls -la
+          test -f crypto_futures_historical_v19.py
+          python -m py_compile crypto_futures_historical_v19.py
+          echo "V19 Python file OK"
+
+      # ==========================================
+      # 5. RUN V19
+      # ==========================================
+      - name: Run Crypto Futures Historical V19
+        run: |
+          echo "=================================================="
+          echo "STARTING CRYPTO FUTURES HISTORICAL V19"
+          echo "Maximum CoinDCX USDT Futures coins"
+          echo "Historical multi-coin research"
+          echo "RR 1:2 + RR 1:3"
+          echo "LONG + SHORT"
+          echo "NO REAL ORDERS"
+          echo "=================================================="
+
+          python -u crypto_futures_historical_v19.py
+
+      # ==========================================
+      # 6. SHOW OUTPUT FILES
+      # ==========================================
+      - name: Show V19 output files
+        if: always()
+        run: |
+          echo "=================================================="
+          echo "V19 OUTPUT FILES"
+          echo "=================================================="
+
+          for file in \
+            v19_all_trades.csv \
+            v19_coin_results.csv \
+            v19_best_coins.csv
+          do
+            if [ -f "$file" ]; then
+              echo ""
+              echo "FOUND: $file"
+              ls -lh "$file"
+            else
+              echo "NOT FOUND: $file"
+            fi
+          done
+
+      # ==========================================
+      # 7. SHOW BEST RESULTS IN ACTION LOG
+      # ==========================================
+      - name: Show V19 best results
+        if: success()
+        run: |
+          python - <<'PY'
+          import os
+          import pandas as pd
+
+          print()
+          print("=" * 90)
+          print("V19 RESULT SUMMARY")
+          print("=" * 90)
+
+          file_name = "v19_best_coins.csv"
+
+          if not os.path.exists(file_name):
+              print("v19_best_coins.csv not found.")
+              raise SystemExit(0)
+
+          df = pd.read_csv(file_name)
+
+          if df.empty:
+              print("No ranked coin results found.")
+              raise SystemExit(0)
+
+          print(f"TOTAL RANKED COINS: {len(df)}")
+
+          if "V19_PASS" in df.columns:
+              pass_mask = (
+                  df["V19_PASS"]
+                  .astype(str)
+                  .str.lower()
+                  .eq("true")
+              )
+
+              passed = df[pass_mask].copy()
+
+              print(f"V19 PASS COINS: {len(passed)}")
+
+          else:
+              passed = pd.DataFrame()
+
+          columns = [
+              "coin_rank",
+              "pair",
+              "strategy",
+              "rr",
+              "total_trades",
+              "win_rate_pct",
+              "net_profit_pct",
+              "profit_factor",
+              "max_drawdown_pct_points",
+              "V19_PASS",
+          ]
+
+          columns = [
+              c for c in columns
+              if c in df.columns
+          ]
+
+          print()
+          print("=" * 90)
+          print("TOP 30 COINS")
+          print("=" * 90)
+
+          print(
+              df[columns]
+              .head(30)
+              .to_string(index=False)
+          )
+
+          if not passed.empty:
+
+              print()
+              print("=" * 90)
+              print("V19 PASS COINS")
+              print("=" * 90)
+
+              print(
+                  passed[columns]
+                  .head(30)
+                  .to_string(index=False)
+              )
+
+          print()
+          print("=" * 90)
+          print("TARGET")
+          print("70%+ HISTORICAL WIN RATE")
+          print("+ POSITIVE NET PROFIT")
+          print("+ ADEQUATE TRADE COUNT")
+          print("+ PROFIT FACTOR >= 1.20")
+          print("=" * 90)
+
+          PY
+
+      # ==========================================
+      # 8. UPLOAD RESULTS AS ARTIFACT
+      # ==========================================
+      - name: Upload V19 results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crypto-futures-v19-results
+          path: |
+            v19_all_trades.csv
+            v19_coin_results.csv
+            v19_best_coins.csv
+          if-no-files-found: warn
+          retention-days: 30
+
+      # ==========================================
+      # 9. COMMIT RESULTS TO REPOSITORY
+      # ==========================================
+      - name: Commit V19 results
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          FOUND=false
+
+          for file in \
+            v19_all_trades.csv \
+            v19_coin_results.csv \
+            v19_best_coins.csv
+          do
+            if [ -f "$file" ]; then
+              git add "$file"
+              FOUND=true
+            fi
+          done
+
+          if [ "$FOUND" = false ]; then
+            echo "No V19 result files found."
+            exit 0
+          fi
+
+          if git diff --cached --quiet; then
+            echo "No V19 result changes to commit."
+          else
+            git commit -m "Update Crypto Futures V19 historical results"
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
+
+      # ==========================================
+      # 10. FINAL STATUS
+      # ==========================================
+      - name: V19 final status
+        if: always()
+        run: |
+          echo ""
+          echo "=================================================="
+          echo "CRYPTO FUTURES HISTORICAL V19 COMPLETE"
+          echo "=================================================="
+          echo "Objective:"
+          echo "Find robust strategy across maximum crypto coins"
+          echo "Target historical WR: 70-80%+"
+          echo "Positive net profit after assumed cost"
+          echo "RR tested: 1:2 and 1:3"
+          echo "Direction: LONG and SHORT"
+          echo "NO REAL ORDERS"
+          echo "=================================================="
