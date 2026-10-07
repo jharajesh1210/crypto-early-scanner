@@ -1,6 +1,6 @@
 {
   "created_utc": "2026-10-05T16:40:19.361494+00:00",
-  "updated_utc": "2026-10-07T08:52:56.972470+00:00",
+  "updated_utc": "2026-10-07T09:10:00.071266+00:00",
   "history_days": 180,
   "historical_interval": "15m",
   "spike_pct": 3.0,
@@ -5085,6 +5085,13 @@
           "scale": 0.84666
         }
       }
+    },
+    "XUSDUSDT": {
+      "pair": "B-XUSD_USDT",
+      "volume_24h_usdt": 5117346.06,
+      "trained_utc": "2026-10-07T09:10:00.071220+00:00",
+      "buy": null,
+      "sell": null
     }
   }
 }
