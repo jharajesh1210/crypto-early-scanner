@@ -1,0 +1,106 @@
+name: Crypto Futures Historical V20
+
+on:
+  workflow_dispatch:
+
+jobs:
+  v20-historical-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    permissions:
+      contents: write
+
+    steps:
+      # ------------------------------------------------------
+      # 1. Checkout repository
+      # ------------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ------------------------------------------------------
+      # 2. Setup Python
+      # ------------------------------------------------------
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # ------------------------------------------------------
+      # 3. Install packages
+      # ------------------------------------------------------
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas numpy requests
+
+      # ------------------------------------------------------
+      # 4. Check V20 file
+      # ------------------------------------------------------
+      - name: Check V20 file
+        run: |
+          echo "Checking V20 Python file..."
+          ls -la
+          test -f crypto_futures_historical_v20.py
+          echo "V20 Python file found."
+
+      # ------------------------------------------------------
+      # 5. Run V20
+      # ------------------------------------------------------
+      - name: Run Crypto Futures Historical V20
+        run: |
+          echo "================================================"
+          echo "CRYPTO FUTURES HISTORICAL V20"
+          echo "TOP-50 FUTURES MASTER LOGIC"
+          echo "================================================"
+
+          python -u crypto_futures_historical_v20.py
+
+      # ------------------------------------------------------
+      # 6. Show generated files
+      # ------------------------------------------------------
+      - name: Show V20 output files
+        if: always()
+        run: |
+          echo "================================================"
+          echo "V20 OUTPUT FILES"
+          echo "================================================"
+
+          ls -lh v20_*.csv 2>/dev/null || true
+
+      # ------------------------------------------------------
+      # 7. Upload results as GitHub artifact
+      # ------------------------------------------------------
+      - name: Upload V20 results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crypto-futures-v20-results
+          path: |
+            v20_all_trades.csv
+            v20_coin_results.csv
+            v20_best_coins.csv
+            v20_pass_strategies.csv
+          if-no-files-found: warn
+          retention-days: 30
+
+      # ------------------------------------------------------
+      # 8. Save CSV results back into repository
+      # ------------------------------------------------------
+      - name: Commit V20 results
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add v20_all_trades.csv 2>/dev/null || true
+          git add v20_coin_results.csv 2>/dev/null || true
+          git add v20_best_coins.csv 2>/dev/null || true
+          git add v20_pass_strategies.csv 2>/dev/null || true
+
+          if git diff --cached --quiet; then
+            echo "No new V20 result changes to commit."
+          else
+            git commit -m "Update Crypto Futures V20 historical results"
+            git push
+          fi
