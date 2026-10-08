@@ -17,37 +17,22 @@
       "entry_price": 2423.27,
       "risk_pct": 0.74197
     },
-    "B-BCH_USDT": {
-      "side": "SHORT",
-      "score": 6,
-      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|BELOW_POC|BB|MACD_NEGATIVE",
-      "signal_time": "2026-10-08T17:00:00+00:00",
-      "stop_price": 280.8,
-      "target_price": null,
-      "profile_shape": "B",
-      "poc": 282.3697916666667,
-      "vah": 296.1875,
-      "val": 276.29,
-      "pair": "B-BCH_USDT",
-      "h1_trend": "SHORT",
-      "entry_time": null,
-      "entry_price": null
-    },
     "B-AAVE_USDT": {
       "side": "SHORT",
       "score": 6,
       "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|BELOW_POC|BB|MACD_NEGATIVE",
       "signal_time": "2026-10-08T17:00:00+00:00",
       "stop_price": 164.21,
-      "target_price": null,
+      "target_price": 159.5,
       "profile_shape": "P",
       "poc": 172.23895833333336,
       "vah": 174.83583333333334,
       "val": 168.48791666666665,
       "pair": "B-AAVE_USDT",
       "h1_trend": "SHORT",
-      "entry_time": null,
-      "entry_price": null
+      "entry_time": "2026-10-08T17:15:00+00:00",
+      "entry_price": 162.64,
+      "risk_pct": 0.96532
     },
     "B-KAS_USDT": {
       "side": "SHORT",
@@ -55,15 +40,16 @@
       "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|BELOW_POC|BB|RSI_FALLING|MACD_NEGATIVE",
       "signal_time": "2026-10-08T17:00:00+00:00",
       "stop_price": 0.03842,
-      "target_price": null,
+      "target_price": 0.03764,
       "profile_shape": "B",
       "poc": 0.038223125,
       "vah": 0.0400625,
       "val": 0.03761,
       "pair": "B-KAS_USDT",
       "h1_trend": "SHORT",
-      "entry_time": null,
-      "entry_price": null
+      "entry_time": "2026-10-08T17:15:00+00:00",
+      "entry_price": 0.03816,
+      "risk_pct": 0.68134
     }
   },
   "last_signal": {
