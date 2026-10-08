@@ -6,15 +6,16 @@
       "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|BELOW_POC|BB|RSI_FALLING|MACD_NEGATIVE",
       "signal_time": "2026-10-08T11:00:00+00:00",
       "stop_price": 766.22,
-      "target_price": null,
+      "target_price": 758.18,
       "profile_shape": "D",
       "poc": 766.9164583333334,
       "vah": 771.5633333333333,
       "val": 766.6066666666667,
       "pair": "B-BNB_USDT",
       "h1_trend": "SHORT",
-      "entry_time": null,
-      "entry_price": null
+      "entry_time": "2026-10-08T11:15:00+00:00",
+      "entry_price": 763.54,
+      "risk_pct": 0.351
     },
     "B-SOL_USDT": {
       "side": "SHORT",
@@ -22,31 +23,16 @@
       "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|BELOW_POC|BB|MACD_NEGATIVE",
       "signal_time": "2026-10-08T11:00:00+00:00",
       "stop_price": 114.4,
-      "target_price": null,
+      "target_price": 112.0,
       "profile_shape": "D",
       "poc": 116.13291666666666,
       "vah": 116.94666666666667,
       "val": 114.9575,
       "pair": "B-SOL_USDT",
       "h1_trend": "SHORT",
-      "entry_time": null,
-      "entry_price": null
-    },
-    "B-LTC_USDT": {
-      "side": "SHORT",
-      "score": 6,
-      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|BELOW_POC|BB|RSI_FALLING",
-      "signal_time": "2026-10-08T11:00:00+00:00",
-      "stop_price": 64.3,
-      "target_price": null,
-      "profile_shape": "B",
-      "poc": 64.39583333333334,
-      "vah": 66.16666666666666,
-      "val": 63.9,
-      "pair": "B-LTC_USDT",
-      "h1_trend": "SHORT",
-      "entry_time": null,
-      "entry_price": null
+      "entry_time": "2026-10-08T11:15:00+00:00",
+      "entry_price": 113.6,
+      "risk_pct": 0.70423
     },
     "B-QNT_USDT": {
       "side": "SHORT",
@@ -54,15 +40,16 @@
       "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|BELOW_POC|BB|MACD_NEGATIVE",
       "signal_time": "2026-10-08T11:00:00+00:00",
       "stop_price": 237.82,
-      "target_price": null,
+      "target_price": 230.41,
       "profile_shape": "D",
       "poc": 242.12312500000002,
       "vah": 251.13625,
       "val": 233.11,
       "pair": "B-QNT_USDT",
       "h1_trend": "SHORT",
-      "entry_time": null,
-      "entry_price": null
+      "entry_time": "2026-10-08T11:15:00+00:00",
+      "entry_price": 235.35,
+      "risk_pct": 1.0495
     }
   },
   "last_signal": {

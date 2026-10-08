@@ -1,0 +1,2 @@
+pair,side,signal_time,entry_time,entry_price,stop_price,target_price,risk_pct,exit_time,exit_price,exit_reason,gross_pct,net_pct,score,reasons,h1_trend,profile_shape,poc,vah,val
+B-LTC_USDT,SHORT,2026-10-08T11:00:00+00:00,2026-10-08T11:15:00+00:00,64.13,64.3,63.79,0.26509,2026-10-08T11:30:00+00:00,64.3,STOP_LOSS_HIT,-0.26509,-0.44509,6,TREND|VOLUME_1.5X|PRICE_ACTION|BELOW_POC|BB|RSI_FALLING,SHORT,B,64.39583333333334,66.16666666666666,63.9
