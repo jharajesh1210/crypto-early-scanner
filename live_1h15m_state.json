@@ -1,22 +1,5 @@
 {
   "positions": {
-    "B-SOL_USDT": {
-      "side": "SHORT",
-      "score": 6,
-      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|BELOW_POC|BB|MACD_NEGATIVE",
-      "signal_time": "2026-10-08T15:00:00+00:00",
-      "stop_price": 112.46,
-      "target_price": 107.81,
-      "profile_shape": "P",
-      "poc": 115.16062500000001,
-      "vah": 117.17,
-      "val": 112.88333333333333,
-      "pair": "B-SOL_USDT",
-      "h1_trend": "SHORT",
-      "entry_time": "2026-10-08T15:15:00+00:00",
-      "entry_price": 110.91,
-      "risk_pct": 1.39753
-    },
     "B-ETH_USDT": {
       "side": "SHORT",
       "score": 6,
@@ -33,6 +16,54 @@
       "entry_time": "2026-10-08T16:15:00+00:00",
       "entry_price": 2423.27,
       "risk_pct": 0.74197
+    },
+    "B-BCH_USDT": {
+      "side": "SHORT",
+      "score": 6,
+      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|BELOW_POC|BB|MACD_NEGATIVE",
+      "signal_time": "2026-10-08T17:00:00+00:00",
+      "stop_price": 280.8,
+      "target_price": null,
+      "profile_shape": "B",
+      "poc": 282.3697916666667,
+      "vah": 296.1875,
+      "val": 276.29,
+      "pair": "B-BCH_USDT",
+      "h1_trend": "SHORT",
+      "entry_time": null,
+      "entry_price": null
+    },
+    "B-AAVE_USDT": {
+      "side": "SHORT",
+      "score": 6,
+      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|BELOW_POC|BB|MACD_NEGATIVE",
+      "signal_time": "2026-10-08T17:00:00+00:00",
+      "stop_price": 164.21,
+      "target_price": null,
+      "profile_shape": "P",
+      "poc": 172.23895833333336,
+      "vah": 174.83583333333334,
+      "val": 168.48791666666665,
+      "pair": "B-AAVE_USDT",
+      "h1_trend": "SHORT",
+      "entry_time": null,
+      "entry_price": null
+    },
+    "B-KAS_USDT": {
+      "side": "SHORT",
+      "score": 7,
+      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|BELOW_POC|BB|RSI_FALLING|MACD_NEGATIVE",
+      "signal_time": "2026-10-08T17:00:00+00:00",
+      "stop_price": 0.03842,
+      "target_price": null,
+      "profile_shape": "B",
+      "poc": 0.038223125,
+      "vah": 0.0400625,
+      "val": 0.03761,
+      "pair": "B-KAS_USDT",
+      "h1_trend": "SHORT",
+      "entry_time": null,
+      "entry_price": null
     }
   },
   "last_signal": {
@@ -42,6 +73,9 @@
     "B-QNT_USDT": "2026-10-08T11:00:00+00:00",
     "B-ADA_USDT": "2026-10-08T16:00:00+00:00",
     "B-ENA_USDT": "2026-10-08T12:30:00+00:00",
-    "B-ETH_USDT": "2026-10-08T16:00:00+00:00"
+    "B-ETH_USDT": "2026-10-08T16:00:00+00:00",
+    "B-BCH_USDT": "2026-10-08T17:00:00+00:00",
+    "B-AAVE_USDT": "2026-10-08T17:00:00+00:00",
+    "B-KAS_USDT": "2026-10-08T17:00:00+00:00"
   }
 }
