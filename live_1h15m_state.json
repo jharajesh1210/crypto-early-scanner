@@ -50,12 +50,29 @@
       "entry_time": "2026-10-08T11:15:00+00:00",
       "entry_price": 235.35,
       "risk_pct": 1.0495
+    },
+    "B-ADA_USDT": {
+      "side": "SHORT",
+      "score": 7,
+      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|BELOW_POC|BB|RSI_FALLING|MACD_NEGATIVE",
+      "signal_time": "2026-10-08T12:00:00+00:00",
+      "stop_price": 0.2499,
+      "target_price": null,
+      "profile_shape": "D",
+      "poc": 0.25294791666666666,
+      "vah": 0.2567875,
+      "val": 0.25274583333333334,
+      "pair": "B-ADA_USDT",
+      "h1_trend": "SHORT",
+      "entry_time": null,
+      "entry_price": null
     }
   },
   "last_signal": {
     "B-BNB_USDT": "2026-10-08T11:00:00+00:00",
     "B-SOL_USDT": "2026-10-08T11:00:00+00:00",
     "B-LTC_USDT": "2026-10-08T11:00:00+00:00",
-    "B-QNT_USDT": "2026-10-08T11:00:00+00:00"
+    "B-QNT_USDT": "2026-10-08T11:00:00+00:00",
+    "B-ADA_USDT": "2026-10-08T12:00:00+00:00"
   }
 }
