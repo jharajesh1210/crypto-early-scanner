@@ -17,54 +17,22 @@
       "entry_price": 763.54,
       "risk_pct": 0.351
     },
-    "B-SOL_USDT": {
-      "side": "SHORT",
-      "score": 6,
-      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|BELOW_POC|BB|MACD_NEGATIVE",
-      "signal_time": "2026-10-08T11:00:00+00:00",
-      "stop_price": 114.4,
-      "target_price": 112.0,
-      "profile_shape": "D",
-      "poc": 116.13291666666666,
-      "vah": 116.94666666666667,
-      "val": 114.9575,
-      "pair": "B-SOL_USDT",
-      "h1_trend": "SHORT",
-      "entry_time": "2026-10-08T11:15:00+00:00",
-      "entry_price": 113.6,
-      "risk_pct": 0.70423
-    },
     "B-ADA_USDT": {
       "side": "SHORT",
       "score": 6,
       "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|BELOW_POC|BB|MACD_NEGATIVE",
       "signal_time": "2026-10-08T12:30:00+00:00",
       "stop_price": 0.2496,
-      "target_price": null,
+      "target_price": 0.2418,
       "profile_shape": "P",
       "poc": 0.25288125,
       "vah": 0.25605,
       "val": 0.2516625,
       "pair": "B-ADA_USDT",
       "h1_trend": "SHORT",
-      "entry_time": null,
-      "entry_price": null
-    },
-    "B-ENA_USDT": {
-      "side": "SHORT",
-      "score": 6,
-      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|BELOW_POC|BB|MACD_NEGATIVE",
-      "signal_time": "2026-10-08T12:30:00+00:00",
-      "stop_price": 0.21598,
-      "target_price": null,
-      "profile_shape": "D",
-      "poc": 0.21905354166666666,
-      "vah": 0.22724333333333332,
-      "val": 0.21603624999999999,
-      "pair": "B-ENA_USDT",
-      "h1_trend": "SHORT",
-      "entry_time": null,
-      "entry_price": null
+      "entry_time": "2026-10-08T12:45:00+00:00",
+      "entry_price": 0.247,
+      "risk_pct": 1.05263
     }
   },
   "last_signal": {
