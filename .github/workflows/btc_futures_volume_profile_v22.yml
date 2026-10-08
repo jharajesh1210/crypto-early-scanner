@@ -1,0 +1,49 @@
+name: BTC Futures Volume Profile V22 Paper
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '2,7,12,17,22,27,32,37,42,47,52,57 * * * *'
+permissions:
+  contents: write
+concurrency:
+  group: btc-v22-paper
+  cancel-in-progress: false
+jobs:
+  paper:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependency
+        run: python -m pip install requests
+      - name: Run BTC V22
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python -u BTC_futures_volume_profile_v22.py
+      - name: Save state
+        if: always()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add btc_v22_state.json btc_v22_paper_trades.csv 2>/dev/null || true
+          if ! git diff --cached --quiet; then
+            git commit -m 'Update BTC V22 paper state'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: btc-v22-paper-${{ github.run_number }}
+          path: |
+            btc_v22_state.json
+            btc_v22_paper_trades.csv
+          if-no-files-found: warn
+          retention-days: 30
