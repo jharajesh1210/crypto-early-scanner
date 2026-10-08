@@ -1,22 +1,5 @@
 {
   "positions": {
-    "B-BNB_USDT": {
-      "side": "SHORT",
-      "score": 7,
-      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|BELOW_POC|BB|RSI_FALLING|MACD_NEGATIVE",
-      "signal_time": "2026-10-08T11:00:00+00:00",
-      "stop_price": 766.22,
-      "target_price": 758.18,
-      "profile_shape": "D",
-      "poc": 766.9164583333334,
-      "vah": 771.5633333333333,
-      "val": 766.6066666666667,
-      "pair": "B-BNB_USDT",
-      "h1_trend": "SHORT",
-      "entry_time": "2026-10-08T11:15:00+00:00",
-      "entry_price": 763.54,
-      "risk_pct": 0.351
-    },
     "B-ADA_USDT": {
       "side": "SHORT",
       "score": 6,
@@ -33,14 +16,63 @@
       "entry_time": "2026-10-08T12:45:00+00:00",
       "entry_price": 0.247,
       "risk_pct": 1.05263
+    },
+    "B-ETH_USDT": {
+      "side": "SHORT",
+      "score": 6,
+      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|BELOW_POC|BB|MACD_NEGATIVE",
+      "signal_time": "2026-10-08T13:30:00+00:00",
+      "stop_price": 2538.23,
+      "target_price": null,
+      "profile_shape": "P",
+      "poc": 2561.038125,
+      "vah": 2583.2004166666666,
+      "val": 2545.695,
+      "pair": "B-ETH_USDT",
+      "h1_trend": "SHORT",
+      "entry_time": null,
+      "entry_price": null
+    },
+    "B-SOL_USDT": {
+      "side": "SHORT",
+      "score": 6,
+      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|BELOW_POC|BB|MACD_NEGATIVE",
+      "signal_time": "2026-10-08T13:30:00+00:00",
+      "stop_price": 112.54,
+      "target_price": null,
+      "profile_shape": "P",
+      "poc": 116.039375,
+      "vah": 116.91875,
+      "val": 114.6575,
+      "pair": "B-SOL_USDT",
+      "h1_trend": "SHORT",
+      "entry_time": null,
+      "entry_price": null
+    },
+    "B-BNB_USDT": {
+      "side": "SHORT",
+      "score": 6,
+      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|BELOW_POC|BB|MACD_NEGATIVE",
+      "signal_time": "2026-10-08T13:30:00+00:00",
+      "stop_price": 761.47,
+      "target_price": null,
+      "profile_shape": "P",
+      "poc": 769.329375,
+      "vah": 774.6025,
+      "val": 765.97375,
+      "pair": "B-BNB_USDT",
+      "h1_trend": "SHORT",
+      "entry_time": null,
+      "entry_price": null
     }
   },
   "last_signal": {
-    "B-BNB_USDT": "2026-10-08T11:00:00+00:00",
-    "B-SOL_USDT": "2026-10-08T11:00:00+00:00",
+    "B-BNB_USDT": "2026-10-08T13:30:00+00:00",
+    "B-SOL_USDT": "2026-10-08T13:30:00+00:00",
     "B-LTC_USDT": "2026-10-08T11:00:00+00:00",
     "B-QNT_USDT": "2026-10-08T11:00:00+00:00",
     "B-ADA_USDT": "2026-10-08T12:30:00+00:00",
-    "B-ENA_USDT": "2026-10-08T12:30:00+00:00"
+    "B-ENA_USDT": "2026-10-08T12:30:00+00:00",
+    "B-ETH_USDT": "2026-10-08T13:30:00+00:00"
   }
 }
