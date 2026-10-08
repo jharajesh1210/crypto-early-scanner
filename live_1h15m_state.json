@@ -50,6 +50,22 @@
       "entry_time": "2026-10-08T17:15:00+00:00",
       "entry_price": 0.03816,
       "risk_pct": 0.68134
+    },
+    "B-STX_USDT": {
+      "side": "SHORT",
+      "score": 6,
+      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|BELOW_POC|RSI_FALLING|MACD_NEGATIVE",
+      "signal_time": "2026-10-08T18:00:00+00:00",
+      "stop_price": 0.3609,
+      "target_price": null,
+      "profile_shape": "D",
+      "poc": 0.36518958333333335,
+      "vah": 0.37740833333333335,
+      "val": 0.3594875,
+      "pair": "B-STX_USDT",
+      "h1_trend": "SHORT",
+      "entry_time": null,
+      "entry_price": null
     }
   },
   "last_signal": {
@@ -62,6 +78,7 @@
     "B-ETH_USDT": "2026-10-08T16:00:00+00:00",
     "B-BCH_USDT": "2026-10-08T17:00:00+00:00",
     "B-AAVE_USDT": "2026-10-08T17:00:00+00:00",
-    "B-KAS_USDT": "2026-10-08T17:00:00+00:00"
+    "B-KAS_USDT": "2026-10-08T17:00:00+00:00",
+    "B-STX_USDT": "2026-10-08T18:00:00+00:00"
   }
 }
