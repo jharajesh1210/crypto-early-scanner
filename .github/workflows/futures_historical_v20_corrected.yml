@@ -1,0 +1,50 @@
+
+name: Crypto Futures V20 Corrected Fast
+
+on:
+  workflow_dispatch:
+
+jobs:
+  corrected-historical:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas numpy requests
+
+      - name: Check Python files
+        run: |
+          test -f crypto_futures_historical_v19.py
+          test -f crypto_futures_historical_v20.py
+          test -f crypto_futures_historical_v20_corrected.py
+          python -m py_compile crypto_futures_historical_v20_corrected.py
+
+      - name: Run V20 Corrected Fast
+        run: |
+          python -u crypto_futures_historical_v20_corrected.py
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crypto-v20-corrected-results
+          path: |
+            v20_corrected_*.csv
+          if-no-files-found: warn
+          retention-days: 30
