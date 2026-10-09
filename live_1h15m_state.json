@@ -16,23 +16,6 @@
       "entry_time": "2026-10-09T02:00:00+00:00",
       "entry_price": 0.3945,
       "risk_pct": 1.85044
-    },
-    "B-TRX_USDT": {
-      "side": "SHORT",
-      "score": 6,
-      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|BELOW_POC|RSI_FALLING|MACD_NEGATIVE",
-      "signal_time": "2026-10-09T04:00:00+00:00",
-      "stop_price": 0.33192,
-      "target_price": 0.33138,
-      "profile_shape": "D",
-      "poc": 0.33281479166666667,
-      "vah": 0.33486666666666665,
-      "val": 0.33174,
-      "pair": "B-TRX_USDT",
-      "h1_trend": "SHORT",
-      "entry_time": "2026-10-09T04:15:00+00:00",
-      "entry_price": 0.33174,
-      "risk_pct": 0.05426
     }
   },
   "last_signal": {
