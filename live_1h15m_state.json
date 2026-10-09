@@ -23,15 +23,16 @@
       "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|ABOVE_POC|BB|MACD_POSITIVE",
       "signal_time": "2026-10-09T22:30:00+00:00",
       "stop_price": 0.12831,
-      "target_price": null,
+      "target_price": 0.13302,
       "profile_shape": "D",
       "poc": 0.123169375,
       "vah": 0.12640041666666665,
       "val": 0.12142958333333333,
       "pair": "B-OP_USDT",
       "h1_trend": "LONG",
-      "entry_time": null,
-      "entry_price": null
+      "entry_time": "2026-10-09T22:45:00+00:00",
+      "entry_price": 0.12988,
+      "risk_pct": 1.20881
     },
     "B-IMX_USDT": {
       "side": "LONG",
@@ -39,15 +40,16 @@
       "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|ABOVE_POC|BB|MACD_POSITIVE",
       "signal_time": "2026-10-09T22:30:00+00:00",
       "stop_price": 0.1947,
-      "target_price": null,
+      "target_price": 0.2079,
       "profile_shape": "b",
       "poc": 0.18661250000000001,
       "vah": 0.189325,
       "val": 0.18234999999999998,
       "pair": "B-IMX_USDT",
       "h1_trend": "LONG",
-      "entry_time": null,
-      "entry_price": null
+      "entry_time": "2026-10-09T22:45:00+00:00",
+      "entry_price": 0.1991,
+      "risk_pct": 2.20994
     }
   },
   "last_signal": {
