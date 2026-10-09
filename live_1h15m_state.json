@@ -23,15 +23,16 @@
       "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|ABOVE_POC|BB|MACD_POSITIVE",
       "signal_time": "2026-10-09T09:00:00+00:00",
       "stop_price": 0.1889,
-      "target_price": null,
+      "target_price": 0.2006,
       "profile_shape": "D",
       "poc": 0.17939375,
       "vah": 0.18781666666666666,
       "val": 0.1735625,
       "pair": "B-IMX_USDT",
       "h1_trend": "LONG",
-      "entry_time": null,
-      "entry_price": null
+      "entry_time": "2026-10-09T09:15:00+00:00",
+      "entry_price": 0.1928,
+      "risk_pct": 2.02282
     }
   },
   "last_signal": {
