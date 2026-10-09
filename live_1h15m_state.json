@@ -6,15 +6,16 @@
       "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|ABOVE_POC|BB|MACD_POSITIVE",
       "signal_time": "2026-10-09T01:45:00+00:00",
       "stop_price": 0.3872,
-      "target_price": null,
+      "target_price": 0.4091,
       "profile_shape": "B",
       "poc": 0.386975,
       "vah": 0.3879,
       "val": 0.36385,
       "pair": "B-STX_USDT",
       "h1_trend": "LONG",
-      "entry_time": null,
-      "entry_price": null
+      "entry_time": "2026-10-09T02:00:00+00:00",
+      "entry_price": 0.3945,
+      "risk_pct": 1.85044
     }
   },
   "last_signal": {
