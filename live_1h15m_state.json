@@ -23,15 +23,16 @@
       "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|ABOVE_POC|BB|RSI_RISING",
       "signal_time": "2026-10-09T11:30:00+00:00",
       "stop_price": 0.362,
-      "target_price": null,
+      "target_price": 0.3833,
       "profile_shape": "B",
       "poc": 0.36040208333333335,
       "vah": 0.3705541666666667,
       "val": 0.34286666666666665,
       "pair": "B-JUP_USDT",
       "h1_trend": "LONG",
-      "entry_time": null,
-      "entry_price": null
+      "entry_time": "2026-10-09T11:45:00+00:00",
+      "entry_price": 0.3691,
+      "risk_pct": 1.9236
     }
   },
   "last_signal": {
