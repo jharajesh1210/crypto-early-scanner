@@ -17,38 +17,22 @@
       "entry_price": 1.953,
       "risk_pct": 3.37942
     },
-    "B-JUP_USDT": {
-      "side": "LONG",
-      "score": 7,
-      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|ABOVE_POC|BB|RSI_RISING|MACD_POSITIVE",
-      "signal_time": "2026-10-09T15:30:00+00:00",
-      "stop_price": 0.3633,
-      "target_price": 0.3822,
-      "profile_shape": "D",
-      "poc": 0.34118125,
-      "vah": 0.3603,
-      "val": 0.3281,
-      "pair": "B-JUP_USDT",
-      "h1_trend": "LONG",
-      "entry_time": "2026-10-09T15:45:00+00:00",
-      "entry_price": 0.3696,
-      "risk_pct": 1.70455
-    },
     "B-ALGO_USDT": {
       "side": "SHORT",
       "score": 5,
       "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|BELOW_POC|MACD_NEGATIVE",
       "signal_time": "2026-10-09T17:00:00+00:00",
       "stop_price": 0.11619,
-      "target_price": null,
+      "target_price": 0.11109,
       "profile_shape": "D",
       "poc": 0.11848208333333332,
       "vah": 0.12023166666666667,
       "val": 0.11700166666666667,
       "pair": "B-ALGO_USDT",
       "h1_trend": "SHORT",
-      "entry_time": null,
-      "entry_price": null
+      "entry_time": "2026-10-09T17:15:00+00:00",
+      "entry_price": 0.11449,
+      "risk_pct": 1.48485
     }
   },
   "last_signal": {
