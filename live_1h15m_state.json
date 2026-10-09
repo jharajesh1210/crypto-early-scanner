@@ -17,36 +17,36 @@
       "entry_price": 0.3945,
       "risk_pct": 1.85044
     },
-    "B-ATOM_USDT": {
-      "side": "LONG",
-      "score": 6,
-      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|ABOVE_POC|BB|MACD_POSITIVE",
-      "signal_time": "2026-10-09T03:30:00+00:00",
-      "stop_price": 1.825,
-      "target_price": 1.885,
-      "profile_shape": "B",
-      "poc": 1.7319375,
-      "vah": 1.845,
-      "val": 1.7193749999999999,
-      "pair": "B-ATOM_USDT",
-      "h1_trend": "LONG",
-      "entry_time": "2026-10-09T03:45:00+00:00",
-      "entry_price": 1.845,
-      "risk_pct": 1.08401
-    },
     "B-TRX_USDT": {
       "side": "SHORT",
       "score": 6,
       "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|BELOW_POC|RSI_FALLING|MACD_NEGATIVE",
       "signal_time": "2026-10-09T04:00:00+00:00",
       "stop_price": 0.33192,
-      "target_price": null,
+      "target_price": 0.33138,
       "profile_shape": "D",
       "poc": 0.33281479166666667,
       "vah": 0.33486666666666665,
       "val": 0.33174,
       "pair": "B-TRX_USDT",
       "h1_trend": "SHORT",
+      "entry_time": "2026-10-09T04:15:00+00:00",
+      "entry_price": 0.33174,
+      "risk_pct": 0.05426
+    },
+    "B-ATOM_USDT": {
+      "side": "LONG",
+      "score": 6,
+      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|ABOVE_POC|BB|MACD_POSITIVE",
+      "signal_time": "2026-10-09T04:30:00+00:00",
+      "stop_price": 1.874,
+      "target_price": null,
+      "profile_shape": "B",
+      "poc": 1.8099791666666665,
+      "vah": 1.8474583333333334,
+      "val": 1.6975416666666665,
+      "pair": "B-ATOM_USDT",
+      "h1_trend": "LONG",
       "entry_time": null,
       "entry_price": null
     }
@@ -64,6 +64,6 @@
     "B-KAS_USDT": "2026-10-08T17:00:00+00:00",
     "B-STX_USDT": "2026-10-09T01:45:00+00:00",
     "B-TRX_USDT": "2026-10-09T04:00:00+00:00",
-    "B-ATOM_USDT": "2026-10-09T03:30:00+00:00"
+    "B-ATOM_USDT": "2026-10-09T04:30:00+00:00"
   }
 }
