@@ -16,6 +16,22 @@
       "entry_time": "2026-10-09T07:45:00+00:00",
       "entry_price": 1.953,
       "risk_pct": 3.37942
+    },
+    "B-JUP_USDT": {
+      "side": "LONG",
+      "score": 7,
+      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|ABOVE_POC|BB|RSI_RISING|MACD_POSITIVE",
+      "signal_time": "2026-10-09T15:30:00+00:00",
+      "stop_price": 0.3633,
+      "target_price": null,
+      "profile_shape": "D",
+      "poc": 0.34118125,
+      "vah": 0.3603,
+      "val": 0.3281,
+      "pair": "B-JUP_USDT",
+      "h1_trend": "LONG",
+      "entry_time": null,
+      "entry_price": null
     }
   },
   "last_signal": {
@@ -33,6 +49,6 @@
     "B-TRX_USDT": "2026-10-09T04:00:00+00:00",
     "B-ATOM_USDT": "2026-10-09T07:30:00+00:00",
     "B-IMX_USDT": "2026-10-09T09:00:00+00:00",
-    "B-JUP_USDT": "2026-10-09T11:30:00+00:00"
+    "B-JUP_USDT": "2026-10-09T15:30:00+00:00"
   }
 }
