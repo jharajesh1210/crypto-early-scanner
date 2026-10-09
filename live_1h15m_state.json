@@ -16,23 +16,6 @@
       "entry_time": "2026-10-09T07:45:00+00:00",
       "entry_price": 1.953,
       "risk_pct": 3.37942
-    },
-    "B-ALGO_USDT": {
-      "side": "SHORT",
-      "score": 5,
-      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|BELOW_POC|MACD_NEGATIVE",
-      "signal_time": "2026-10-09T17:00:00+00:00",
-      "stop_price": 0.11619,
-      "target_price": 0.11109,
-      "profile_shape": "D",
-      "poc": 0.11848208333333332,
-      "vah": 0.12023166666666667,
-      "val": 0.11700166666666667,
-      "pair": "B-ALGO_USDT",
-      "h1_trend": "SHORT",
-      "entry_time": "2026-10-09T17:15:00+00:00",
-      "entry_price": 0.11449,
-      "risk_pct": 1.48485
     }
   },
   "last_signal": {
