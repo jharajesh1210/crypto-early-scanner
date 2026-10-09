@@ -1,5 +1,22 @@
 {
-  "positions": {},
+  "positions": {
+    "B-ATOM_USDT": {
+      "side": "LONG",
+      "score": 6,
+      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|ABOVE_POC|BB|MACD_POSITIVE",
+      "signal_time": "2026-10-09T07:30:00+00:00",
+      "stop_price": 1.887,
+      "target_price": null,
+      "profile_shape": "D",
+      "poc": 1.9511249999999998,
+      "vah": 1.9589999999999999,
+      "val": 1.7542499999999999,
+      "pair": "B-ATOM_USDT",
+      "h1_trend": "LONG",
+      "entry_time": null,
+      "entry_price": null
+    }
+  },
   "last_signal": {
     "B-BNB_USDT": "2026-10-08T16:00:00+00:00",
     "B-SOL_USDT": "2026-10-08T15:00:00+00:00",
@@ -13,6 +30,6 @@
     "B-KAS_USDT": "2026-10-08T17:00:00+00:00",
     "B-STX_USDT": "2026-10-09T01:45:00+00:00",
     "B-TRX_USDT": "2026-10-09T04:00:00+00:00",
-    "B-ATOM_USDT": "2026-10-09T04:30:00+00:00"
+    "B-ATOM_USDT": "2026-10-09T07:30:00+00:00"
   }
 }
