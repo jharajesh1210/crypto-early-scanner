@@ -1888,6 +1888,46 @@ def print_performance_summary(
 # MAIN
 # ============================================================
 
+# ============================================================
+# INITIALIZE PERSISTENT OUTPUTS (NO SIGNAL REQUIRED)
+# ============================================================
+
+def initialize_output_files(state):
+    """Create header-only CSVs and initial state on the first run.
+
+    Existing files are never overwritten here.
+    """
+    paper_columns = [
+        "PAIR", "STRATEGY", "SIDE", "SIGNAL_TIME", "ENTRY_TIME",
+        "ENTRY_PRICE", "SL_PRICE", "SL_PCT", "STATUS", "EXIT_TIME",
+        "EXIT_PRICE", "EXIT_REASON", "GROSS_RETURN_%", "NET_RETURN_%",
+        "BARS_HELD", "BB_SQUEEZE", "BB_WIDTH_%",
+        "BB_SQUEEZE_THRESHOLD_%", "RSI_5M", "MACD_HIST_5M",
+        "EMA20", "EMA50", "POC", "POC_DISTANCE_%",
+        "SUPPORT_DISTANCE_%", "BB_POSITION", "VOLUME_RATIO",
+        "TREND_1H", "CREATED_AT_UTC", "TRADE_ID", "RR", "TP_PRICE",
+        "TP_PCT",
+    ]
+    signal_columns = [
+        "PAIR", "STRATEGY", "SIGNAL_TIME", "ENTRY_PRICE", "RSI_5M",
+        "MACD_HIST_5M", "EMA20", "EMA50", "BB_SQUEEZE",
+        "BB_WIDTH_%", "BB_POSITION", "VOLUME_RATIO",
+        "POC_DISTANCE_%", "SUPPORT_DISTANCE_%", "TREND_1H",
+    ]
+
+    for path, columns in (
+        (PAPER_FILE, paper_columns),
+        (SIGNAL_FILE, signal_columns),
+    ):
+        if not Path(path).exists():
+            pd.DataFrame(columns=columns).to_csv(path, index=False)
+            print("Initialized empty output:", path)
+
+    if not Path(STATE_FILE).exists():
+        save_state(state)
+        print("Initialized persistent state:", STATE_FILE)
+
+
 def main():
 
     print()
@@ -1939,6 +1979,7 @@ def main():
     # --------------------------------------------------------
 
     state = load_state()
+    initialize_output_files(state)
 
     # --------------------------------------------------------
     # Download
