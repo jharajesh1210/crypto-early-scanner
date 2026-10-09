@@ -1,5 +1,22 @@
 {
-  "positions": {},
+  "positions": {
+    "B-STX_USDT": {
+      "side": "LONG",
+      "score": 6,
+      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|ABOVE_POC|BB|MACD_POSITIVE",
+      "signal_time": "2026-10-09T01:45:00+00:00",
+      "stop_price": 0.3872,
+      "target_price": null,
+      "profile_shape": "B",
+      "poc": 0.386975,
+      "vah": 0.3879,
+      "val": 0.36385,
+      "pair": "B-STX_USDT",
+      "h1_trend": "LONG",
+      "entry_time": null,
+      "entry_price": null
+    }
+  },
   "last_signal": {
     "B-BNB_USDT": "2026-10-08T16:00:00+00:00",
     "B-SOL_USDT": "2026-10-08T15:00:00+00:00",
@@ -11,6 +28,6 @@
     "B-BCH_USDT": "2026-10-08T17:00:00+00:00",
     "B-AAVE_USDT": "2026-10-08T17:00:00+00:00",
     "B-KAS_USDT": "2026-10-08T17:00:00+00:00",
-    "B-STX_USDT": "2026-10-08T18:00:00+00:00"
+    "B-STX_USDT": "2026-10-09T01:45:00+00:00"
   }
 }
