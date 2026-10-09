@@ -33,22 +33,6 @@
       "entry_time": "2026-10-09T17:15:00+00:00",
       "entry_price": 0.11449,
       "risk_pct": 1.48485
-    },
-    "B-HBAR_USDT": {
-      "side": "SHORT",
-      "score": 7,
-      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|BELOW_POC|BB|RSI_FALLING|MACD_NEGATIVE",
-      "signal_time": "2026-10-09T18:30:00+00:00",
-      "stop_price": 0.09012,
-      "target_price": null,
-      "profile_shape": "D",
-      "poc": 0.091195,
-      "vah": 0.09217,
-      "val": 0.09048,
-      "pair": "B-HBAR_USDT",
-      "h1_trend": "SHORT",
-      "entry_time": null,
-      "entry_price": null
     }
   },
   "last_signal": {
