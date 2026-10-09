@@ -33,22 +33,6 @@
       "entry_time": "2026-10-09T04:15:00+00:00",
       "entry_price": 0.33174,
       "risk_pct": 0.05426
-    },
-    "B-ATOM_USDT": {
-      "side": "LONG",
-      "score": 6,
-      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|ABOVE_POC|BB|MACD_POSITIVE",
-      "signal_time": "2026-10-09T04:30:00+00:00",
-      "stop_price": 1.874,
-      "target_price": null,
-      "profile_shape": "B",
-      "poc": 1.8099791666666665,
-      "vah": 1.8474583333333334,
-      "val": 1.6975416666666665,
-      "pair": "B-ATOM_USDT",
-      "h1_trend": "LONG",
-      "entry_time": null,
-      "entry_price": null
     }
   },
   "last_signal": {
