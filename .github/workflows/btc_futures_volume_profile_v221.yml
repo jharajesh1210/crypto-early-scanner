@@ -1,0 +1,63 @@
+name: BTC Futures Volume Profile V22.1 Paper
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '4,14,24,34,44,54 * * * *'
+permissions:
+  contents: write
+concurrency:
+  group: btc-v221-paper
+  cancel-in-progress: false
+jobs:
+  paper:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependency
+        run: python -m pip install requests
+      - name: Run BTC V22.1
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python -u BTC_futures_volume_profile_v221.py
+      - name: Save state and report
+        if: always()
+        shell: bash
+        run: |
+          set -e
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for f in btc_v221_state.json btc_v221_paper_trades.csv btc_v221_report.csv; do
+            if [ -f "$f" ]; then
+              echo "FOUND $f ($(wc -c < "$f") bytes)"
+              git add -f "$f"
+            else
+              echo "MISSING $f"
+            fi
+          done
+          if ! git diff --cached --quiet; then
+            git commit -m 'Update BTC V22.1 paper state and report'
+            git pull --rebase origin main
+            git push origin HEAD:main
+            echo 'STATE PUSH SUCCESS'
+          else
+            echo 'NO CHANGES TO COMMIT'
+          fi
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: btc-v221-paper-${{ github.run_number }}
+          path: |
+            btc_v221_state.json
+            btc_v221_paper_trades.csv
+            btc_v221_report.csv
+          if-no-files-found: warn
+          retention-days: 30
