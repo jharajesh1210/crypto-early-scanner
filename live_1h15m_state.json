@@ -50,6 +50,22 @@
       "entry_time": "2026-10-10T01:45:00+00:00",
       "entry_price": 0.1403,
       "risk_pct": 1.64647
+    },
+    "B-FIL_USDT": {
+      "side": "LONG",
+      "score": 6,
+      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|ABOVE_POC|BB|MACD_POSITIVE",
+      "signal_time": "2026-10-10T02:30:00+00:00",
+      "stop_price": 1.1255,
+      "target_price": null,
+      "profile_shape": "b",
+      "poc": 1.0829333333333333,
+      "vah": 1.0931,
+      "val": 1.0687,
+      "pair": "B-FIL_USDT",
+      "h1_trend": "LONG",
+      "entry_time": null,
+      "entry_price": null
     }
   },
   "last_signal": {
@@ -71,6 +87,7 @@
     "B-ALGO_USDT": "2026-10-09T17:00:00+00:00",
     "B-HBAR_USDT": "2026-10-09T18:30:00+00:00",
     "B-OP_USDT": "2026-10-10T01:30:00+00:00",
-    "B-THETA_USDT": "2026-10-09T23:30:00+00:00"
+    "B-THETA_USDT": "2026-10-09T23:30:00+00:00",
+    "B-FIL_USDT": "2026-10-10T02:30:00+00:00"
   }
 }
