@@ -6,12 +6,29 @@
       "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|ABOVE_POC|BB|MACD_POSITIVE",
       "signal_time": "2026-10-10T17:00:00+00:00",
       "stop_price": 7.451,
-      "target_price": null,
+      "target_price": 7.772,
       "profile_shape": "D",
       "poc": 7.303916666666666,
       "vah": 7.3501666666666665,
       "val": 6.9185,
       "pair": "B-INJ_USDT",
+      "h1_trend": "LONG",
+      "entry_time": "2026-10-10T17:15:00+00:00",
+      "entry_price": 7.558,
+      "risk_pct": 1.41572
+    },
+    "B-BTC_USDT": {
+      "side": "LONG",
+      "score": 7,
+      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|ABOVE_POC|BB|RSI_RISING|MACD_POSITIVE",
+      "signal_time": "2026-10-10T17:30:00+00:00",
+      "stop_price": 83018.2,
+      "target_price": null,
+      "profile_shape": "D",
+      "poc": 82592.01041666666,
+      "vah": 82794.9375,
+      "val": 82352.1875,
+      "pair": "B-BTC_USDT",
       "h1_trend": "LONG",
       "entry_time": null,
       "entry_price": null
@@ -38,6 +55,7 @@
     "B-OP_USDT": "2026-10-10T01:30:00+00:00",
     "B-THETA_USDT": "2026-10-09T23:30:00+00:00",
     "B-FIL_USDT": "2026-10-10T02:30:00+00:00",
-    "B-INJ_USDT": "2026-10-10T17:00:00+00:00"
+    "B-INJ_USDT": "2026-10-10T17:00:00+00:00",
+    "B-BTC_USDT": "2026-10-10T17:30:00+00:00"
   }
 }
