@@ -1,5 +1,22 @@
 {
-  "positions": {},
+  "positions": {
+    "B-INJ_USDT": {
+      "side": "LONG",
+      "score": 6,
+      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|ABOVE_POC|BB|MACD_POSITIVE",
+      "signal_time": "2026-10-10T17:00:00+00:00",
+      "stop_price": 7.451,
+      "target_price": null,
+      "profile_shape": "D",
+      "poc": 7.303916666666666,
+      "vah": 7.3501666666666665,
+      "val": 6.9185,
+      "pair": "B-INJ_USDT",
+      "h1_trend": "LONG",
+      "entry_time": null,
+      "entry_price": null
+    }
+  },
   "last_signal": {
     "B-BNB_USDT": "2026-10-08T16:00:00+00:00",
     "B-SOL_USDT": "2026-10-08T15:00:00+00:00",
@@ -20,6 +37,7 @@
     "B-HBAR_USDT": "2026-10-09T18:30:00+00:00",
     "B-OP_USDT": "2026-10-10T01:30:00+00:00",
     "B-THETA_USDT": "2026-10-09T23:30:00+00:00",
-    "B-FIL_USDT": "2026-10-10T02:30:00+00:00"
+    "B-FIL_USDT": "2026-10-10T02:30:00+00:00",
+    "B-INJ_USDT": "2026-10-10T17:00:00+00:00"
   }
 }
