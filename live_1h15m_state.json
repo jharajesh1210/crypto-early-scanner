@@ -23,15 +23,16 @@
       "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|ABOVE_POC|BB|MACD_POSITIVE",
       "signal_time": "2026-10-10T19:45:00+00:00",
       "stop_price": 0.553,
-      "target_price": null,
+      "target_price": 0.6001,
       "profile_shape": "D",
       "poc": 0.48511875,
       "vah": 0.5426708333333333,
       "val": 0.4644,
       "pair": "B-TIA_USDT",
       "h1_trend": "LONG",
-      "entry_time": null,
-      "entry_price": null
+      "entry_time": "2026-10-10T20:00:00+00:00",
+      "entry_price": 0.5687,
+      "risk_pct": 2.76068
     }
   },
   "last_signal": {
