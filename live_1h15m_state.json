@@ -16,23 +16,6 @@
       "entry_time": "2026-10-09T07:45:00+00:00",
       "entry_price": 1.953,
       "risk_pct": 3.37942
-    },
-    "B-OP_USDT": {
-      "side": "LONG",
-      "score": 6,
-      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|ABOVE_POC|BB|MACD_POSITIVE",
-      "signal_time": "2026-10-10T01:30:00+00:00",
-      "stop_price": 0.13799,
-      "target_price": 0.14492,
-      "profile_shape": "b",
-      "poc": 0.12301645833333334,
-      "vah": 0.12791375,
-      "val": 0.1199,
-      "pair": "B-OP_USDT",
-      "h1_trend": "LONG",
-      "entry_time": "2026-10-10T01:45:00+00:00",
-      "entry_price": 0.1403,
-      "risk_pct": 1.64647
     }
   },
   "last_signal": {
