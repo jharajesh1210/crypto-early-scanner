@@ -21,18 +21,17 @@
       "side": "LONG",
       "score": 6,
       "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|ABOVE_POC|BB|MACD_POSITIVE",
-      "signal_time": "2026-10-10T19:00:00+00:00",
-      "stop_price": 0.5438,
-      "target_price": 0.5696,
-      "profile_shape": "b",
-      "poc": 0.5099729166666667,
-      "vah": 0.5157416666666667,
-      "val": 0.46959166666666663,
+      "signal_time": "2026-10-10T19:45:00+00:00",
+      "stop_price": 0.553,
+      "target_price": null,
+      "profile_shape": "D",
+      "poc": 0.48511875,
+      "vah": 0.5426708333333333,
+      "val": 0.4644,
       "pair": "B-TIA_USDT",
       "h1_trend": "LONG",
-      "entry_time": "2026-10-10T19:15:00+00:00",
-      "entry_price": 0.5524,
-      "risk_pct": 1.55684
+      "entry_time": null,
+      "entry_price": null
     }
   },
   "last_signal": {
@@ -59,6 +58,6 @@
     "B-INJ_USDT": "2026-10-10T17:00:00+00:00",
     "B-BTC_USDT": "2026-10-10T17:30:00+00:00",
     "B-APT_USDT": "2026-10-10T18:00:00+00:00",
-    "B-TIA_USDT": "2026-10-10T19:00:00+00:00"
+    "B-TIA_USDT": "2026-10-10T19:45:00+00:00"
   }
 }
