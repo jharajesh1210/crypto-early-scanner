@@ -1,0 +1,71 @@
+name: V10 Telegram Profit Loss Demo
+
+on:
+  workflow_dispatch:
+
+jobs:
+  demo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send sample profit and loss messages
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import urllib.parse
+          import urllib.request
+
+          token = os.environ.get('BOT_TOKEN', '').strip()
+          chat_id = os.environ.get('CHAT_ID', '').strip()
+          if not token or not chat_id:
+              raise SystemExit('Missing BOT_TOKEN or CHAT_ID GitHub Actions secrets')
+
+          messages = [
+              ('🧪 DEMO ONLY — V10 PAPER PROFIT\n'
+               'Strategy: V10_BB55_EMA20_H1_MACD\n'
+               'Pair: BTC/USDT Futures | Timeframe: 5m\n'
+               'RR: 1:2 | Exit reason: TARGET HIT\n'
+               'Example entry: 100,000 USDT\n'
+               'Example exit: 101,000 USDT\n'
+               'Gross return: +1.00%\n'
+               'Example cost: 0.10%\n'
+               'Net return: +0.90%\n\n'
+               'DEMO PERFORMANCE (not real results)\n'
+               'Closed trades: 10 | Wins: 6 | Losses: 4\n'
+               'Win rate: 60.00%\n'
+               'Sum of net trade returns: +3.20%\n'
+               '⚠️ Sample values only. No trade was opened or recorded.'),
+              ('🧪 DEMO ONLY — V10 PAPER LOSS\n'
+               'Strategy: V10_EMA20_RISING3\n'
+               'Pair: BTC/USDT Futures | Timeframe: 5m\n'
+               'RR: 1:3 | Exit reason: STOP LOSS HIT\n'
+               'Example entry: 100,000 USDT\n'
+               'Example exit: 99,500 USDT\n'
+               'Gross return: -0.50%\n'
+               'Example cost: 0.10%\n'
+               'Net return: -0.60%\n\n'
+               'DEMO PERFORMANCE (not real results)\n'
+               'Closed trades: 11 | Wins: 6 | Losses: 5\n'
+               'Win rate: 54.55%\n'
+               'Sum of net trade returns: +2.60%\n'
+               '⚠️ Sample values only. No trade was opened or recorded.')
+          ]
+
+          for index, message in enumerate(messages, 1):
+              payload = urllib.parse.urlencode({'chat_id': chat_id, 'text': message}).encode()
+              request = urllib.request.Request(
+                  f'https://api.telegram.org/bot{token}/sendMessage',
+                  data=payload,
+                  method='POST',
+              )
+              with urllib.request.urlopen(request, timeout=20) as response:
+                  result = json.load(response)
+              if not result.get('ok'):
+                  raise RuntimeError(f'Telegram rejected demo message {index}')
+              print(f'Demo message {index}/2 delivered to Telegram API')
+
+          print('DONE: 2 DEMO messages; no CSV, state, or trading changes')
+          PY
