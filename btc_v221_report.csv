@@ -1,2 +1,2 @@
 timestamp_utc,market_trades_stored,api_trades_received,new_unique_trades,trade_span_hours,warmup_ready,levels,open_position,closed_paper_trades,wins,win_rate_pct,sum_net_return_pct
-2026-10-10T11:01:02.102128+00:00,2010,30,30,18.68,1,3,0,0,0,,
+2026-10-10T11:16:28.556008+00:00,2040,30,30,18.937,1,3,0,0,0,,
