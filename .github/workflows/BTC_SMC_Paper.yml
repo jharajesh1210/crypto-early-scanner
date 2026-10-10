@@ -1,54 +1,68 @@
-name: BTC Futures V23 Pure SMC Paper
+
+name: BTC_SMC_Paper
+
 on:
   workflow_dispatch:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: "*/5 * * * *"
+
 permissions:
   contents: write
+
 concurrency:
-  group: v23-smc-paper
+  group: btc-smc-paper
   cancel-in-progress: false
+
 jobs:
-  paper:
+  paper_scanner:
+    name: Run BTC SMC Paper Scanner
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 15
+
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          ref: main
-      - name: Python
+
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-      - name: Install
-        run: python -m pip install numpy pandas requests
-      - name: Run V23 paper scanner
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy pandas requests yfinance
+
+      - name: Run BTC SMC Paper Scanner
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
-        run: python -u crypto_futures_v23_smc_paper.py
-      - name: Save V23 results to repo
-        shell: bash
         run: |
-          set -e
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          for f in crypto_futures_v23_smc_state.json crypto_futures_v23_smc_trades.csv crypto_futures_v23_smc_signals.csv; do
-            if [ -f "$f" ]; then git add -f "$f"; fi
-          done
-          if ! git diff --cached --quiet; then
-            git commit -m 'Update V23 SMC paper results'
-            git pull --rebase origin main
-            git push origin HEAD:main
-          fi
-      - name: Upload V23 CSVs
+          python -u BTC_SMC_Paper.py
+
+      - name: Save paper trading results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: btc-v23-smc-${{ github.run_number }}
+          name: BTC_SMC_Paper_Results
           path: |
-            crypto_futures_v23_smc_state.json
-            crypto_futures_v23_smc_trades.csv
-            crypto_futures_v23_smc_signals.csv
-          if-no-files-found: warn
+            *v23*.csv
+            *v23*.json
+            *V23*.csv
+            *V23*.json
+            *SMC*.csv
+            *SMC*.json
+          if-no-files-found: ignore
+
+      - name: Commit paper trading state
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- '*v23*.csv' '*v23*.json' '*V23*.csv' '*V23*.json' '*SMC*.csv' '*SMC*.json' || true
+          if ! git diff --cached --quiet; then
+            git commit -m "Update BTC SMC paper trading results"
+            git push
+          else
+            echo "No paper trading changes to commit"
+          fi
