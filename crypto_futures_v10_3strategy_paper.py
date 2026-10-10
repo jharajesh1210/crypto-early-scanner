@@ -1523,18 +1523,20 @@ def closed_trade_message(trade):
     elif reason == "TIME_EXIT":
         result = "TIME EXIT"
 
+    pnl_label = "PROFIT" if net_return > 0 else "LOSS" if net_return < 0 else "BREAKEVEN"
+
     return (
-        "V10 PAPER TRADE CLOSED\n"
+        f"V10 PAPER {pnl_label} ALERT\n"
         "NO REAL ORDER\n\n"
         f"Pair: {PAIR}\n"
-        f"Strategy: {signal['strategy']}\n"
+        f"Strategy: {trade.get('STRATEGY', 'UNKNOWN')}\n"
         f"RR: {rr}\n"
         f"Result: {result}\n"
         f"Entry: "
         f"{safe_float(trade.get('ENTRY_PRICE')):.2f}\n"
         f"Exit: "
         f"{safe_float(trade.get('EXIT_PRICE')):.2f}\n"
-        f"Net Return: {net_return:.4f}%\n"
+        f"Net Return (fees included): {net_return:+.4f}%\n"
         f"Bars Held: "
         f"{int(safe_float(trade.get('BARS_HELD'), 0))}\n\n"
         "PAPER TEST ONLY"
