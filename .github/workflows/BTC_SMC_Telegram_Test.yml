@@ -1,0 +1,70 @@
+
+name: BTC SMC Telegram Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  telegram_test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Send Telegram Test Message
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+        run: |
+          python - <<'PY'
+          import os
+          import json
+          import urllib.request
+
+          token = os.getenv("BOT_TOKEN", "").strip()
+          chat_id = os.getenv("CHAT_ID", "").strip()
+
+          if not token or not chat_id:
+              raise RuntimeError(
+                  "BOT_TOKEN or CHAT_ID secret missing"
+              )
+
+          message = (
+              "BTC_SMC_Paper V23\n"
+              "TELEGRAM CONNECTION TEST SUCCESS\n"
+              "CoinDCX BTC/USDT Futures\n"
+              "5m Entry + 1H Structure\n"
+              "PAPER TRADING ONLY\n"
+              "This is a TEST, not a trade signal."
+          )
+
+          url = (
+              f"https://api.telegram.org/"
+              f"bot{token}/sendMessage"
+          )
+
+          payload = json.dumps({
+              "chat_id": chat_id,
+              "text": message
+          }).encode("utf-8")
+
+          request = urllib.request.Request(
+              url,
+              data=payload,
+              headers={
+                  "Content-Type": "application/json"
+              },
+              method="POST"
+          )
+
+          with urllib.request.urlopen(
+              request,
+              timeout=20
+          ) as response:
+              result = json.load(response)
+
+          if not result.get("ok"):
+              raise RuntimeError(
+                  "Telegram API did not accept message"
+              )
+
+          print("TELEGRAM TEST MESSAGE SENT")
+          PY
