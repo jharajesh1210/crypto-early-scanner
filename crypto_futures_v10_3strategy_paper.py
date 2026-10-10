@@ -1543,6 +1543,50 @@ def closed_trade_message(trade):
     )
 
 
+def cumulative_trade_summary(paper, strategy, rr):
+    """Completed trades only; each RR is a separate paper scenario."""
+    if paper.empty or "STATUS" not in paper.columns:
+        return "Cumulative paper results: no closed trades."
+
+    closed = paper.loc[
+        paper["STATUS"].astype(str).str.upper().eq("CLOSED")
+    ].copy()
+    if closed.empty:
+        return "Cumulative paper results: no closed trades."
+
+    returns = pd.to_numeric(closed["NET_RETURN_%"], errors="coerce")
+    closed = closed.loc[returns.notna()].copy()
+    closed["NET_NUM"] = returns.loc[closed.index]
+
+    def metrics(frame):
+        count = len(frame)
+        wins = int((frame["NET_NUM"] > 0).sum())
+        losses = int((frame["NET_NUM"] < 0).sum())
+        flat = count - wins - losses
+        rate = 100.0 * wins / count if count else 0.0
+        gain = float(frame.loc[frame["NET_NUM"] > 0, "NET_NUM"].sum())
+        loss = float(frame.loc[frame["NET_NUM"] < 0, "NET_NUM"].sum())
+        total = float(frame["NET_NUM"].sum())
+        return (f"Trades: {count} | Profit: {wins} | Loss: {losses} | Flat: {flat}\n"
+                f"Win Rate: {rate:.2f}%\n"
+                f"Sum of winning returns: +{gain:.4f}%\n"
+                f"Sum of losing returns: {loss:.4f}%\n"
+                f"Sum of net returns: {total:+.4f}%")
+
+    same_rr = closed.loc[closed["RR"].astype(str).eq(str(rr))]
+    same_strategy_rr = same_rr.loc[
+        same_rr["STRATEGY"].astype(str).eq(str(strategy))
+    ]
+    return (
+        f"\n\nSTRATEGY TOTAL ({strategy}, RR {rr})\n"
+        + metrics(same_strategy_rr)
+        + f"\n\nALL STRATEGIES (RR {rr})\n"
+        + metrics(same_rr)
+        + "\n\nNote: returns are added per paper trade, not account P&L; "
+          "RR 1:2 and 1:3 are separate scenarios."
+    )
+
+
 # ============================================================
 # PERFORMANCE SUMMARY
 # ============================================================
@@ -1947,8 +1991,11 @@ def main():
         )
 
         send_telegram(
-            closed_trade_message(
-                trade
+            closed_trade_message(trade)
+            + cumulative_trade_summary(
+                paper,
+                trade.get("STRATEGY", "UNKNOWN"),
+                trade.get("RR", ""),
             )
         )
 
