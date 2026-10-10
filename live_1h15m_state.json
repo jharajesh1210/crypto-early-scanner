@@ -33,22 +33,6 @@
       "entry_time": "2026-10-10T21:45:00+00:00",
       "entry_price": 0.1896,
       "risk_pct": 0.97574
-    },
-    "B-QNT_USDT": {
-      "side": "SHORT",
-      "score": 5,
-      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|BELOW_POC|BB",
-      "signal_time": "2026-10-10T22:00:00+00:00",
-      "stop_price": 239.98,
-      "target_price": null,
-      "profile_shape": "D",
-      "poc": 248.68708333333333,
-      "vah": 251.74333333333334,
-      "val": 244.2725,
-      "pair": "B-QNT_USDT",
-      "h1_trend": "SHORT",
-      "entry_time": null,
-      "entry_price": null
     }
   },
   "last_signal": {
