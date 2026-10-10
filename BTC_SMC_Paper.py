@@ -1,170 +1,305 @@
 
-"""BTC_SMC_Paper: CoinDCX BTC futures SMC signals, PAPER ONLY.
-No order endpoints, no API keys. Uses completed candles only.
-"""
-import json
-import os
-from datetime import datetime, timezone
-from pathlib import Path
+# ============================================================
+# BTC_SMC_Paper.py
+# V23 PURE SMC - COINDCX BTC USDT FUTURES
+# 5 MIN ENTRY + 1 HOUR STRUCTURE
+# LIQUIDITY SWEEP + CHOCH + FVG RETEST
+# LONG / SHORT - PAPER TRADING ONLY
+# TELEGRAM ENTRY / EXIT / PROFIT LOSS
+# ============================================================
 
-import pandas as pd
+import os
+import json
+import time
+from pathlib import Path
+from datetime import datetime, timezone
+
 import requests
+import pandas as pd
+
+
+# =========================
+# 1. SETTINGS
+# =========================
 
 PAIR = "B-BTC_USDT"
-API = "https://public.coindcx.com/market_data/candles"
+
+FUTURES_API = (
+    "https://public.coindcx.com/market_data/candlesticks"
+)
+
 STATE_FILE = Path("BTC_SMC_Paper_state.json")
 TRADES_FILE = Path("BTC_SMC_Paper_trades.csv")
-SWING = 3
-SETUP_LIFE = 18                 # 18 x 5-minute candles
-FVG_LIFE = 12
-FEE_ROUND_TRIP = 0.001         # assumption: 0.10% of entry notional
-SLIPPAGE_EACH_SIDE = 0.0002    # assumption: 0.02% each side
-MIN_RISK_PCT = 0.0005
-MAX_RISK_PCT = 0.025
+
+BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
+CHAT_ID = os.getenv("CHAT_ID", "").strip()
+
+SWING_LENGTH = 3
+SETUP_EXPIRY = 18
+FVG_EXPIRY = 12
+
+RR_VALUES = [2, 3]
+
+# Paper trading cost assumptions
+ROUND_TRIP_FEE = 0.001
+SLIPPAGE_PER_SIDE = 0.0002
+
+MIN_RISK_PERCENT = 0.05
+MAX_RISK_PERCENT = 2.50
+
+CANDLE_5M_MS = 5 * 60 * 1000
+CANDLE_1H_MS = 60 * 60 * 1000
 
 
-def telegram(message):
-    token = os.getenv("BOT_TOKEN", "").strip()
-    chat_id = os.getenv("CHAT_ID", "").strip()
-    if not token or not chat_id:
-        print("Telegram secrets absent; message:", message)
+# =========================
+# 2. TELEGRAM
+# =========================
+
+def send_telegram(message):
+
+    if not BOT_TOKEN or not CHAT_ID:
+        print("Telegram not configured")
+        print(message)
         return
-    try:
-        r = requests.post(
-            f"https://api.telegram.org/bot{token}/sendMessage",
-            json={"chat_id": chat_id, "text": message}, timeout=15)
-        r.raise_for_status()
-    except requests.RequestException as exc:
-        print("Telegram delivery failed:", exc)
 
-
-def get_candles(interval, days):
-    now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
-    start_ms = now_ms - days * 86400 * 1000
-    rows = []
-    # CoinDCX API returns a bounded number of rows per call; use chunks.
-    step_ms = (500 if interval == "5m" else 300) * (
-        300000 if interval == "5m" else 3600000
+    url = (
+        f"https://api.telegram.org/"
+        f"bot{BOT_TOKEN}/sendMessage"
     )
-    for left in range(start_ms, now_ms, step_ms):
-        right = min(left + step_ms, now_ms)
-        response = requests.get(
-            API,
-            params={
-                "pair": PAIR,
-                "interval": interval,
-                "startTime": left,
-                "endTime": right,
+
+    try:
+        response = requests.post(
+            url,
+            json={
+                "chat_id": CHAT_ID,
+                "text": message
             },
-            timeout=25,
+            timeout=20
         )
+
         response.raise_for_status()
-        payload = response.json()
-        if isinstance(payload, dict):
-            payload = payload.get("data", payload.get("candles", []))
+
+        print("Telegram message sent")
+
+    except requests.RequestException as error:
+        print("Telegram error:", str(error))
+
+
+# =========================
+# 3. COINDCX FUTURES DATA
+# =========================
+
+def get_candles(resolution, days):
+
+    now_seconds = int(time.time())
+    start_seconds = now_seconds - days * 86400
+
+    # Download in smaller chunks
+    if resolution == "5":
+        chunk_seconds = 2 * 86400
+        candle_ms = CANDLE_5M_MS
+
+    elif resolution == "60":
+        chunk_seconds = 10 * 86400
+        candle_ms = CANDLE_1H_MS
+
+    else:
+        raise ValueError("Unsupported resolution")
+
+    all_rows = []
+
+    for left in range(
+        start_seconds,
+        now_seconds,
+        chunk_seconds
+    ):
+
+        right = min(
+            left + chunk_seconds,
+            now_seconds
+        )
+
+        params = {
+            "pair": PAIR,
+            "from": int(left),
+            "to": int(right),
+            "resolution": resolution,
+            "pcode": "f"
+        }
+
+        response = requests.get(
+            FUTURES_API,
+            params=params,
+            timeout=30
+        )
+
+        if response.status_code != 200:
+            print(
+                "CoinDCX API error:",
+                response.status_code,
+                response.text[:500]
+            )
+
+        response.raise_for_status()
+
+        result = response.json()
+
+        if not isinstance(result, dict):
+            raise RuntimeError(
+                "Unexpected Futures API response"
+            )
+
+        if result.get("s") != "ok":
+            raise RuntimeError(
+                "CoinDCX Futures API: "
+                + str(result)[:500]
+            )
+
+        payload = result.get("data", [])
+
         if not isinstance(payload, list):
             raise RuntimeError(
-                f"Unexpected CoinDCX response for {interval}"
+                "Invalid Futures candle payload"
             )
-        rows.extend(payload)
 
-    parsed = []
-    for item in rows:
-        try:
-            if isinstance(item, dict):
-                ts = item.get(
-                    "time", item.get("timestamp", item.get("t"))
-                )
-                op = item.get("open", item.get("o"))
-                hi = item.get("high", item.get("h"))
-                lo = item.get("low", item.get("l"))
-                cl = item.get("close", item.get("c"))
-            else:
-                continue
+        all_rows.extend(payload)
 
-            parsed.append((
-                float(ts),
-                float(op),
-                float(hi),
-                float(lo),
-                float(cl),
-            ))
-        except (ValueError, TypeError):
-            continue
+        time.sleep(0.2)
 
-    if not parsed:
+    if not all_rows:
         raise RuntimeError(
-            f"No usable CoinDCX candles for {interval}"
+            "No CoinDCX Futures candles received"
         )
 
-    df = pd.DataFrame(
-        parsed,
-        columns=["time", "open", "high", "low", "close"],
-    )
+    df = pd.DataFrame(all_rows)
 
-    # CoinDCX timestamps normally milliseconds; accept seconds too.
+    required = [
+        "time", "open", "high", "low", "close"
+    ]
+
+    for column in required:
+        if column not in df.columns:
+            raise RuntimeError(
+                "Missing candle column: " + column
+            )
+
+        df[column] = pd.to_numeric(
+            df[column],
+            errors="coerce"
+        )
+
+    df = df.dropna(subset=required)
+
+    # Support timestamps in seconds or milliseconds
     df["time"] = df["time"].where(
         df["time"] > 1e11,
-        df["time"] * 1000,
+        df["time"] * 1000
     )
+
     df = (
         df.drop_duplicates("time")
         .sort_values("time")
         .reset_index(drop=True)
     )
 
-    minutes = 5 if interval == "5m" else 60
+    # Only fully completed candles
+    now_ms = int(time.time() * 1000)
+
     df = df[
-        df["time"] + minutes * 60000 <= now_ms
+        df["time"] + candle_ms <= now_ms
     ].reset_index(drop=True)
 
-    if len(df) < (100 if interval == "5m" else 30):
+    minimum = 100 if resolution == "5" else 30
+
+    if len(df) < minimum:
         raise RuntimeError(
-            f"Too few completed {interval} candles: {len(df)}"
+            f"Insufficient {resolution} candles: "
+            f"{len(df)}"
         )
+
+    print(
+        f"Futures {resolution} candles loaded:",
+        len(df)
+    )
+
     return df
 
 
-def swings(df, n=SWING):
-    highs, lows = [], []
+# =========================
+# 4. SWING HIGHS / LOWS
+# =========================
 
-    for i in range(n, len(df) - n):
-        window = df.iloc[i - n:i + n + 1]
+def find_swings(df, length=SWING_LENGTH):
+
+    swing_highs = []
+    swing_lows = []
+
+    for i in range(
+        length,
+        len(df) - length
+    ):
+
+        window = df.iloc[
+            i - length:i + length + 1
+        ]
+
+        current = df.iloc[i]
 
         if (
-            df.iloc[i].high == window.high.max()
-            and (window.high == df.iloc[i].high).sum() == 1
+            current["high"] == window["high"].max()
+            and
+            (window["high"] == current["high"]).sum() == 1
         ):
-            highs.append((i, float(df.iloc[i].high)))
+
+            swing_highs.append(
+                (i, float(current["high"]))
+            )
 
         if (
-            df.iloc[i].low == window.low.min()
-            and (window.low == df.iloc[i].low).sum() == 1
+            current["low"] == window["low"].min()
+            and
+            (window["low"] == current["low"]).sum() == 1
         ):
-            lows.append((i, float(df.iloc[i].low)))
 
-    return highs, lows
+            swing_lows.append(
+                (i, float(current["low"]))
+            )
+
+    return swing_highs, swing_lows
 
 
-def h1_bias(df):
-    highs, lows = swings(df)
+# =========================
+# 5. ONE HOUR MARKET STRUCTURE
+# =========================
+
+def get_h1_bias(df):
+
+    highs, lows = find_swings(df)
 
     if len(highs) < 2 or len(lows) < 2:
         return "NEUTRAL"
 
-    hh = highs[-1][1] > highs[-2][1]
-    hl = lows[-1][1] > lows[-2][1]
-    lh = highs[-1][1] < highs[-2][1]
-    ll = lows[-1][1] < lows[-2][1]
+    higher_high = highs[-1][1] > highs[-2][1]
+    higher_low = lows[-1][1] > lows[-2][1]
 
-    return (
-        "LONG" if hh and hl
-        else "SHORT" if lh and ll
-        else "NEUTRAL"
-    )
+    lower_high = highs[-1][1] < highs[-2][1]
+    lower_low = lows[-1][1] < lows[-2][1]
+
+    if higher_high and higher_low:
+        return "LONG"
+
+    if lower_high and lower_low:
+        return "SHORT"
+
+    return "NEUTRAL"
 
 
-def fresh_state():
+# =========================
+# 6. PAPER STATE
+# =========================
+
+def new_state():
+
     return {
         "last_bar": 0,
         "setup": None,
@@ -172,278 +307,477 @@ def fresh_state():
         "closed": 0,
         "wins": 0,
         "losses": 0,
-        "net_pct": 0.0,
+        "net_pct": 0.0
     }
 
 
 def load_state():
+
     if STATE_FILE.exists():
-        with STATE_FILE.open(encoding="utf-8") as file:
+
+        with open(
+            STATE_FILE,
+            "r",
+            encoding="utf-8"
+        ) as file:
+
             return json.load(file)
-    return fresh_state()
+
+    return new_state()
 
 
 def save_state(state):
-    tmp = STATE_FILE.with_suffix(".tmp")
-    tmp.write_text(
-        json.dumps(state, indent=2),
-        encoding="utf-8",
-    )
-    tmp.replace(STATE_FILE)
+
+    temp_file = STATE_FILE.with_suffix(".tmp")
+
+    with open(
+        temp_file,
+        "w",
+        encoding="utf-8"
+    ) as file:
+
+        json.dump(
+            state,
+            file,
+            indent=2
+        )
+
+    temp_file.replace(STATE_FILE)
 
 
-def log_trade(trade):
+# =========================
+# 7. CSV TRADE HISTORY
+# =========================
+
+def save_trade(trade):
+
     columns = [
-        "time_utc", "side", "rr", "entry", "stop",
-        "target", "exit", "reason", "gross_pct", "net_pct",
+        "time_utc",
+        "side",
+        "rr",
+        "entry",
+        "stop",
+        "target",
+        "exit",
+        "reason",
+        "gross_pct",
+        "net_pct"
     ]
-    row = {key: trade.get(key, "") for key in columns}
+
+    row = {
+        column: trade.get(column, "")
+        for column in columns
+    }
 
     pd.DataFrame([row]).to_csv(
         TRADES_FILE,
         mode="a",
-        index=False,
         header=not TRADES_FILE.exists(),
+        index=False
     )
 
 
-def close_positions(state, bar):
-    survivors = []
+# =========================
+# 8. PAPER TRADE EXIT
+# =========================
 
-    for pos in state["positions"]:
-        # Do not exit on the same candle used to generate entry.
-        if int(bar.time) <= pos["entry_time"]:
-            survivors.append(pos)
+def check_exits(state, bar):
+
+    remaining = []
+
+    for position in state["positions"]:
+
+        if bar["time"] <= position["entry_time"]:
+            remaining.append(position)
             continue
 
-        long = pos["side"] == "LONG"
+        is_long = position["side"] == "LONG"
 
-        stop_hit = (
-            bar.low <= pos["stop"]
-            if long else bar.high >= pos["stop"]
-        )
-        target_hit = (
-            bar.high >= pos["target"]
-            if long else bar.low <= pos["target"]
-        )
+        if is_long:
+
+            stop_hit = (
+                bar["low"] <= position["stop"]
+            )
+
+            target_hit = (
+                bar["high"] >= position["target"]
+            )
+
+        else:
+
+            stop_hit = (
+                bar["high"] >= position["stop"]
+            )
+
+            target_hit = (
+                bar["low"] <= position["target"]
+            )
 
         if not stop_hit and not target_hit:
-            survivors.append(pos)
+            remaining.append(position)
             continue
 
-        # If both touched in one candle, assume STOP first.
-        reason = "SL" if stop_hit else "TP"
-        exit_price = (
-            pos["stop"] if stop_hit else pos["target"]
-        )
+        # Conservative rule:
+        # If SL and TP both touched, assume SL first.
 
-        gross = (
-            (exit_price / pos["entry"] - 1)
-            * 100
-            * (1 if long else -1)
-        )
-        net = gross - 100 * (
-            FEE_ROUND_TRIP + 2 * SLIPPAGE_EACH_SIDE
-        )
+        if stop_hit:
+            exit_price = position["stop"]
+            reason = "STOP LOSS"
+
+        else:
+            exit_price = position["target"]
+            reason = "TARGET HIT"
+
+        direction = 1 if is_long else -1
+
+        gross_pct = (
+            (
+                exit_price / position["entry"]
+            ) - 1
+        ) * 100 * direction
+
+        costs_pct = (
+            ROUND_TRIP_FEE
+            + 2 * SLIPPAGE_PER_SIDE
+        ) * 100
+
+        net_pct = gross_pct - costs_pct
 
         state["closed"] += 1
-        state["wins" if net > 0 else "losses"] += 1
+
+        if net_pct > 0:
+            state["wins"] += 1
+        else:
+            state["losses"] += 1
+
         state["net_pct"] = round(
-            state["net_pct"] + net, 6
+            state["net_pct"] + net_pct,
+            6
         )
 
-        stamp = datetime.fromtimestamp(
-            bar.time / 1000, timezone.utc
+        timestamp = datetime.fromtimestamp(
+            bar["time"] / 1000,
+            timezone.utc
         ).isoformat()
 
-        log_trade({
-            **pos,
-            "time_utc": stamp,
+        trade = {
+            **position,
+            "time_utc": timestamp,
             "exit": exit_price,
             "reason": reason,
-            "gross_pct": round(gross, 4),
-            "net_pct": round(net, 4),
-        })
+            "gross_pct": round(gross_pct, 4),
+            "net_pct": round(net_pct, 4)
+        }
 
-        count = state["closed"]
+        save_trade(trade)
 
-        telegram(
-            f"BTC SMC PAPER EXIT | {pos['side']} "
-            f"RR 1:{pos['rr']} | {reason}\n"
-            f"Exit: {exit_price:.2f} | Net: {net:+.3f}%\n"
-            f"Closed: {count} | Wins: {state['wins']} "
-            f"| Losses: {state['losses']}\n"
-            f"Win rate: {100 * state['wins'] / count:.1f}% "
-            f"| Sum net returns: {state['net_pct']:+.3f}%"
+        closed = state["closed"]
+
+        win_rate = (
+            state["wins"] / closed * 100
         )
 
-    state["positions"] = survivors
+        message = (
+            "BTC SMC PAPER - TRADE CLOSED\n"
+            f"Side: {position['side']}\n"
+            f"RR: 1:{position['rr']}\n"
+            f"Result: {reason}\n"
+            f"Entry: {position['entry']:.2f}\n"
+            f"Exit: {exit_price:.2f}\n"
+            f"Net Return: {net_pct:+.3f}%\n\n"
+            f"Closed Legs: {closed}\n"
+            f"Wins: {state['wins']}\n"
+            f"Losses: {state['losses']}\n"
+            f"Win Rate: {win_rate:.2f}%\n"
+            f"Sum Net Returns: "
+            f"{state['net_pct']:+.3f}%\n"
+            "PAPER TRADING ONLY"
+        )
+
+        print(message)
+        send_telegram(message)
+
+    state["positions"] = remaining
 
 
-def find_sweep(df, i, side):
-    # Only pivots confirmed BEFORE the current candle.
+# =========================
+# 9. LIQUIDITY SWEEP
+# =========================
+
+def detect_sweep(df, i, side):
+
     previous = df.iloc[:i]
-    highs, lows = swings(previous)
+
+    highs, lows = find_swings(previous)
+
     bar = df.iloc[i]
 
     if side == "LONG" and lows:
-        level = lows[-1][1]
 
-        if bar.low < level and bar.close > level:
+        swing_low = lows[-1][1]
+
+        if (
+            bar["low"] < swing_low
+            and bar["close"] > swing_low
+        ):
+
             return {
-                "side": side,
+                "side": "LONG",
                 "stage": "SWEEP",
-                "sweep_time": int(bar.time),
-                "extreme": float(bar.low),
+                "sweep_time": int(bar["time"]),
+                "extreme": float(bar["low"]),
                 "break_level": (
                     highs[-1][1] if highs else None
-                ),
+                )
             }
 
     if side == "SHORT" and highs:
-        level = highs[-1][1]
 
-        if bar.high > level and bar.close < level:
+        swing_high = highs[-1][1]
+
+        if (
+            bar["high"] > swing_high
+            and bar["close"] < swing_high
+        ):
+
             return {
-                "side": side,
+                "side": "SHORT",
                 "stage": "SWEEP",
-                "sweep_time": int(bar.time),
-                "extreme": float(bar.high),
+                "sweep_time": int(bar["time"]),
+                "extreme": float(bar["high"]),
                 "break_level": (
                     lows[-1][1] if lows else None
-                ),
+                )
             }
 
     return None
 
 
-def process_setup(df, i, state, bias):
+# =========================
+# 10. SMC SETUP
+# =========================
+
+def process_smc(df, i, state, bias):
+
     bar = df.iloc[i]
     setup = state.get("setup")
 
-    if setup and (
-        (int(bar.time) - setup["sweep_time"])
-        > SETUP_LIFE * 300000
-        or setup["side"] != bias
-    ):
-        setup = None
+    if setup:
+
+        expired = (
+            bar["time"] - setup["sweep_time"]
+            > SETUP_EXPIRY * CANDLE_5M_MS
+        )
+
+        if expired or setup["side"] != bias:
+            setup = None
 
     if setup:
-        long = setup["side"] == "LONG"
 
-        if (
-            (long and bar.low < setup["extreme"])
-            or (not long and bar.high > setup["extreme"])
-        ):
+        is_long = setup["side"] == "LONG"
+
+        invalidated = (
+            bar["low"] < setup["extreme"]
+            if is_long
+            else bar["high"] > setup["extreme"]
+        )
+
+        if invalidated:
             setup = None
 
         elif setup["stage"] == "SWEEP":
-            level = setup.get("break_level")
 
-            if level is not None and (
-                (long and bar.close > level)
-                or (not long and bar.close < level)
-            ):
-                setup["stage"] = "CHOCH"
-                setup["choch_time"] = int(bar.time)
+            level = setup["break_level"]
 
-        elif setup["stage"] == "CHOCH" and i >= 2:
-            a = df.iloc[i - 2]
+            if level is not None:
 
-            if long and bar.low > a.high:
-                setup.update(
-                    stage="FVG",
-                    fvg_low=float(a.high),
-                    fvg_high=float(bar.low),
-                    fvg_time=int(bar.time),
+                choch = (
+                    bar["close"] > level
+                    if is_long
+                    else bar["close"] < level
                 )
 
-            elif not long and bar.high < a.low:
-                setup.update(
-                    stage="FVG",
-                    fvg_low=float(bar.high),
-                    fvg_high=float(a.low),
-                    fvg_time=int(bar.time),
+                if choch:
+
+                    setup["stage"] = "CHOCH"
+                    setup["choch_time"] = int(
+                        bar["time"]
+                    )
+
+                    print(
+                        "SMC CHOCH:",
+                        setup["side"]
+                    )
+
+        elif setup["stage"] == "CHOCH":
+
+            if i >= 2:
+
+                first = df.iloc[i - 2]
+
+                bullish_fvg = (
+                    bar["low"] > first["high"]
                 )
+
+                bearish_fvg = (
+                    bar["high"] < first["low"]
+                )
+
+                if is_long and bullish_fvg:
+
+                    setup.update({
+                        "stage": "FVG",
+                        "fvg_low": float(
+                            first["high"]
+                        ),
+                        "fvg_high": float(
+                            bar["low"]
+                        ),
+                        "fvg_time": int(
+                            bar["time"]
+                        )
+                    })
+
+                elif (
+                    not is_long
+                    and bearish_fvg
+                ):
+
+                    setup.update({
+                        "stage": "FVG",
+                        "fvg_low": float(
+                            bar["high"]
+                        ),
+                        "fvg_high": float(
+                            first["low"]
+                        ),
+                        "fvg_time": int(
+                            bar["time"]
+                        )
+                    })
 
         elif setup["stage"] == "FVG":
-            if (
-                int(bar.time) - setup["fvg_time"]
-            ) > FVG_LIFE * 300000:
+
+            fvg_expired = (
+                bar["time"] - setup["fvg_time"]
+                > FVG_EXPIRY * CANDLE_5M_MS
+            )
+
+            if fvg_expired:
                 setup = None
 
             else:
+
                 touched = (
-                    bar.low <= setup["fvg_high"]
-                    and bar.high >= setup["fvg_low"]
+                    bar["low"] <= setup["fvg_high"]
+                    and
+                    bar["high"] >= setup["fvg_low"]
                 )
 
-                if long:
+                if is_long:
+
                     rejection = (
-                        bar.close > bar.open
-                        and bar.close > setup["fvg_high"]
+                        bar["close"] > bar["open"]
+                        and
+                        bar["close"] > setup["fvg_high"]
                     )
+
                 else:
+
                     rejection = (
-                        bar.close < bar.open
-                        and bar.close < setup["fvg_low"]
+                        bar["close"] < bar["open"]
+                        and
+                        bar["close"] < setup["fvg_low"]
                     )
 
                 if touched and rejection:
-                    entry = float(bar.close)
+
+                    entry = float(bar["close"])
                     stop = float(setup["extreme"])
+
                     risk = abs(entry - stop)
-                    risk_pct = risk / entry
+
+                    risk_percent = (
+                        risk / entry * 100
+                    )
 
                     valid_direction = (
-                        (long and stop < entry)
-                        or (not long and stop > entry)
+                        stop < entry
+                        if is_long
+                        else stop > entry
+                    )
+
+                    valid_risk = (
+                        MIN_RISK_PERCENT
+                        <= risk_percent
+                        <= MAX_RISK_PERCENT
                     )
 
                     if (
                         valid_direction
-                        and MIN_RISK_PCT <= risk_pct <= MAX_RISK_PCT
+                        and valid_risk
                         and not state["positions"]
                     ):
-                        stamp = datetime.fromtimestamp(
-                            bar.time / 1000, timezone.utc
-                        ).isoformat()
 
-                        for rr in (2, 3):
+                        for rr in RR_VALUES:
+
                             target = (
                                 entry + rr * risk
-                                if long else entry - rr * risk
+                                if is_long
+                                else entry - rr * risk
                             )
 
-                            state["positions"].append({
+                            position = {
                                 "side": setup["side"],
                                 "rr": rr,
                                 "entry": entry,
                                 "stop": stop,
                                 "target": target,
-                                "entry_time": int(bar.time),
-                            })
+                                "entry_time": int(
+                                    bar["time"]
+                                )
+                            }
+
+                            state["positions"].append(
+                                position
+                            )
 
                         target2 = (
                             entry + 2 * risk
-                            if long else entry - 2 * risk
-                        )
-                        target3 = (
-                            entry + 3 * risk
-                            if long else entry - 3 * risk
+                            if is_long
+                            else entry - 2 * risk
                         )
 
-                        telegram(
-                            f"BTC SMC PAPER ENTRY | "
-                            f"{setup['side']} | {stamp}\n"
-                            f"5m Sweep + CHoCH + FVG retest "
-                            f"| 1H {bias}\n"
-                            f"Entry: {entry:.2f} "
-                            f"| SL: {stop:.2f}\n"
-                            f"RR2: {target2:.2f} "
-                            f"| RR3: {target3:.2f}\n"
-                            "SIMULATION ONLY - NO REAL ORDER"
+                        target3 = (
+                            entry + 3 * risk
+                            if is_long
+                            else entry - 3 * risk
                         )
+
+                        timestamp = (
+                            datetime.fromtimestamp(
+                                bar["time"] / 1000,
+                                timezone.utc
+                            ).isoformat()
+                        )
+
+                        message = (
+                            "BTC SMC PAPER ENTRY\n"
+                            f"Time UTC: {timestamp}\n"
+                            f"Pair: {PAIR}\n"
+                            f"Side: {setup['side']}\n"
+                            f"1H Bias: {bias}\n"
+                            "Setup: Liquidity Sweep "
+                            "+ CHOCH + FVG Retest\n"
+                            f"Entry: {entry:.2f}\n"
+                            f"Stop Loss: {stop:.2f}\n"
+                            f"Target RR2: {target2:.2f}\n"
+                            f"Target RR3: {target3:.2f}\n"
+                            "PAPER TRADING ONLY"
+                        )
+
+                        print(message)
+                        send_telegram(message)
 
                     setup = None
 
@@ -452,68 +786,147 @@ def process_setup(df, i, state, bias):
         and bias in ("LONG", "SHORT")
         and not state["positions"]
     ):
-        setup = find_sweep(df, i, bias)
+
+        setup = detect_sweep(
+            df,
+            i,
+            bias
+        )
+
+        if setup:
+            print(
+                "Liquidity Sweep:",
+                setup["side"]
+            )
 
     state["setup"] = setup
 
 
+# =========================
+# 11. MAIN SCANNER
+# =========================
+
 def main():
-    df5 = get_candles("5m", 6)
-    df1 = get_candles("1h", 18)
+
+    print("=" * 55)
+    print("BTC SMC PAPER - V23")
+    print("COINDCX BTC USDT FUTURES")
+    print("5M ENTRY + 1H MARKET STRUCTURE")
+    print("PAPER TRADING ONLY")
+    print("=" * 55)
+
+    df5 = get_candles(
+        resolution="5",
+        days=6
+    )
+
+    df1 = get_candles(
+        resolution="60",
+        days=18
+    )
+
     state = load_state()
 
+    # First run initializes at the latest completed candle.
+    # No historical paper trades are invented.
+
     if not state["last_bar"]:
-        state["last_bar"] = int(df5.iloc[-1].time)
-        save_state(state)
-        print(
-            "Initialized at latest completed 5m candle; "
-            "no historical trades fabricated."
+
+        state["last_bar"] = int(
+            df5.iloc[-1]["time"]
         )
+
+        save_state(state)
+
+        print(
+            "INITIALIZED SUCCESSFULLY"
+        )
+
+        print(
+            "Waiting for next completed 5m candle"
+        )
+
         return
 
     new_indices = df5.index[
-        df5.time > state["last_bar"]
+        df5["time"] > state["last_bar"]
     ].tolist()
 
     if not new_indices:
-        print("No new completed 5m candles.")
+
+        print(
+            "NO NEW COMPLETED 5M CANDLE"
+        )
+
         return
 
     if len(new_indices) > 12:
+
         raise RuntimeError(
-            "More than 12 candles missed; "
-            "stop rather than replay stale alerts"
+            "Too many missed 5m candles. "
+            "Manual review required."
         )
 
     for i in new_indices:
+
         bar = df5.iloc[i]
 
-        # Use only 1H candles completed by this 5m candle.
+        # Avoid future-data leakage:
+        # only use 1H candles already closed.
+
         eligible_h1 = df1[
-            df1.time + 3600000 <= bar.time + 300000
+            df1["time"] + CANDLE_1H_MS
+            <= bar["time"] + CANDLE_5M_MS
         ]
 
-        bias = h1_bias(eligible_h1)
+        bias = get_h1_bias(
+            eligible_h1
+        )
 
-        close_positions(state, bar)
-        process_setup(df5, i, state, bias)
+        check_exits(
+            state,
+            bar
+        )
 
-        state["last_bar"] = int(bar.time)
+        process_smc(
+            df5,
+            i,
+            state,
+            bias
+        )
+
+        state["last_bar"] = int(
+            bar["time"]
+        )
+
         save_state(state)
 
         print(
-            f"5m candle {int(bar.time)} "
-            f"| 1H bias {bias} "
-            f"| open legs {len(state['positions'])}"
+            "5M:",
+            datetime.fromtimestamp(
+                bar["time"] / 1000,
+                timezone.utc
+            ).isoformat(),
+            "| 1H:",
+            bias,
+            "| Open Legs:",
+            len(state["positions"])
         )
 
+    print("=" * 55)
+    print("PAPER TRADING SUMMARY")
+    print("Closed Legs:", state["closed"])
+    print("Wins:", state["wins"])
+    print("Losses:", state["losses"])
+
     print(
-        f"PAPER ONLY | closed {state['closed']} "
-        f"| wins {state['wins']} "
-        f"| losses {state['losses']} "
-        f"| sum net returns "
-        f"{state['net_pct']:+.3f}%"
+        "Sum Net Returns:",
+        round(state["net_pct"], 4),
+        "%"
     )
+
+    print("V23 SCAN COMPLETE")
+    print("=" * 55)
 
 
 if __name__ == "__main__":
