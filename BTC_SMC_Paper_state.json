@@ -1,26 +1,9 @@
 {
-  "last_bar": 1791733500000,
+  "last_bar": 1791734100000,
   "setup": null,
-  "positions": [
-    {
-      "side": "LONG",
-      "rr": 2,
-      "entry": 83016.3,
-      "stop": 82751.1,
-      "target": 83546.7,
-      "entry_time": 1791694800000
-    },
-    {
-      "side": "LONG",
-      "rr": 3,
-      "entry": 83016.3,
-      "stop": 82751.1,
-      "target": 83811.9,
-      "entry_time": 1791694800000
-    }
-  ],
-  "closed": 0,
-  "wins": 0,
+  "positions": [],
+  "closed": 2,
+  "wins": 2,
   "losses": 0,
-  "net_pct": 0.0
+  "net_pct": 1.317277
 }
