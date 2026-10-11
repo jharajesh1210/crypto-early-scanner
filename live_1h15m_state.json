@@ -1,22 +1,5 @@
 {
   "positions": {
-    "B-ARB_USDT": {
-      "side": "LONG",
-      "score": 6,
-      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|ABOVE_POC|BB|MACD_POSITIVE",
-      "signal_time": "2026-10-10T21:30:00+00:00",
-      "stop_price": 0.18775,
-      "target_price": 0.1933,
-      "profile_shape": "D",
-      "poc": 0.18538125,
-      "vah": 0.1865,
-      "val": 0.1833675,
-      "pair": "B-ARB_USDT",
-      "h1_trend": "LONG",
-      "entry_time": "2026-10-10T21:45:00+00:00",
-      "entry_price": 0.1896,
-      "risk_pct": 0.97574
-    },
     "B-QNT_USDT": {
       "side": "SHORT",
       "score": 6,
@@ -34,19 +17,35 @@
       "entry_price": 238.26,
       "risk_pct": 1.16679
     },
-    "B-LTC_USDT": {
-      "side": "SHORT",
-      "score": 7,
-      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|BELOW_POC|BB|RSI_FALLING|MACD_NEGATIVE",
-      "signal_time": "2026-10-11T00:45:00+00:00",
-      "stop_price": 63.64,
+    "B-APT_USDT": {
+      "side": "LONG",
+      "score": 5,
+      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|ABOVE_POC|RSI_RISING",
+      "signal_time": "2026-10-11T01:15:00+00:00",
+      "stop_price": 0.8538,
       "target_price": null,
-      "profile_shape": "D",
-      "poc": 63.781666666666666,
-      "vah": 64.19333333333333,
-      "val": 63.586666666666666,
-      "pair": "B-LTC_USDT",
-      "h1_trend": "SHORT",
+      "profile_shape": "B",
+      "poc": 0.8263895833333333,
+      "vah": 0.8642541666666667,
+      "val": 0.8067,
+      "pair": "B-APT_USDT",
+      "h1_trend": "LONG",
+      "entry_time": null,
+      "entry_price": null
+    },
+    "B-ARB_USDT": {
+      "side": "LONG",
+      "score": 6,
+      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|ABOVE_POC|BB|MACD_POSITIVE",
+      "signal_time": "2026-10-11T01:15:00+00:00",
+      "stop_price": 0.19001,
+      "target_price": null,
+      "profile_shape": "b",
+      "poc": 0.18532125,
+      "vah": 0.188305,
+      "val": 0.1834225,
+      "pair": "B-ARB_USDT",
+      "h1_trend": "LONG",
       "entry_time": null,
       "entry_price": null
     }
@@ -74,8 +73,8 @@
     "B-FIL_USDT": "2026-10-10T02:30:00+00:00",
     "B-INJ_USDT": "2026-10-10T20:45:00+00:00",
     "B-BTC_USDT": "2026-10-10T17:30:00+00:00",
-    "B-APT_USDT": "2026-10-10T18:00:00+00:00",
+    "B-APT_USDT": "2026-10-11T01:15:00+00:00",
     "B-TIA_USDT": "2026-10-10T19:45:00+00:00",
-    "B-ARB_USDT": "2026-10-10T21:30:00+00:00"
+    "B-ARB_USDT": "2026-10-11T01:15:00+00:00"
   }
 }
