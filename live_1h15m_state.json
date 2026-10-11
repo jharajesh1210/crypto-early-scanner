@@ -16,23 +16,6 @@
       "entry_time": "2026-10-11T00:30:00+00:00",
       "entry_price": 238.26,
       "risk_pct": 1.16679
-    },
-    "B-XRP_USDT": {
-      "side": "SHORT",
-      "score": 7,
-      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|BELOW_POC|BB|RSI_FALLING|MACD_NEGATIVE",
-      "signal_time": "2026-10-11T03:00:00+00:00",
-      "stop_price": 1.4001,
-      "target_price": 1.389,
-      "profile_shape": "D",
-      "poc": 1.4066437500000002,
-      "vah": 1.4092833333333334,
-      "val": 1.4024958333333335,
-      "pair": "B-XRP_USDT",
-      "h1_trend": "SHORT",
-      "entry_time": "2026-10-11T03:15:00+00:00",
-      "entry_price": 1.3964,
-      "risk_pct": 0.26497
     }
   },
   "last_signal": {
