@@ -43,16 +43,21 @@ jobs:
 
       - name: Save paper trading files to GitHub
         if: always()
+        shell: bash
         run: |
+          set -e
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          for file in \
-            TOP100_CRIPTO_AMC_POC_state.json \
-            TOP100_CRIPTO_AMC_POC_trades.csv \
-            TOP100_CRIPTO_AMC_POC_signals.csv \
+          FILES=(
+            TOP100_CRIPTO_AMC_POC_state.json
+            TOP100_CRIPTO_AMC_POC_trades.csv
+            TOP100_CRIPTO_AMC_POC_signals.csv
             TOP100_CRIPTO_AMC_POC_universe.csv
-          do
+          )
+
+          for file in "${FILES[@]}"; do
             if [ -f "$file" ]; then
               git add "$file"
             fi
@@ -60,7 +65,31 @@ jobs:
 
           if git diff --cached --quiet; then
             echo "No paper trading file changes"
-          else
-            git commit -m "Update TOP100 paper trading data"
-            git push
+            exit 0
           fi
+
+          git commit -m "Update TOP100 paper trading data"
+
+          for attempt in 1 2 3 4 5; do
+            echo "Push attempt $attempt of 5"
+
+            git fetch origin main
+
+            if ! git rebase origin/main; then
+              echo "Rebase conflict detected."
+              git rebase --abort || true
+              echo "Stopping to protect paper trading data."
+              exit 1
+            fi
+
+            if git push origin HEAD:main; then
+              echo "Paper trading data saved successfully"
+              exit 0
+            fi
+
+            echo "Push rejected. Retrying..."
+            sleep 5
+          done
+
+          echo "ERROR: Could not save paper trading data."
+          exit 1
