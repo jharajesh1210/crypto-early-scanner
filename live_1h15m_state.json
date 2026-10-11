@@ -1,12 +1,29 @@
 {
-  "positions": {},
+  "positions": {
+    "B-ENA_USDT": {
+      "side": "LONG",
+      "score": 7,
+      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|ABOVE_POC|BB|RSI_RISING|MACD_POSITIVE",
+      "signal_time": "2026-10-11T13:00:00+00:00",
+      "stop_price": 0.22444,
+      "target_price": null,
+      "profile_shape": "b",
+      "poc": 0.22252937499999997,
+      "vah": 0.22423666666666667,
+      "val": 0.22144291666666666,
+      "pair": "B-ENA_USDT",
+      "h1_trend": "LONG",
+      "entry_time": null,
+      "entry_price": null
+    }
+  },
   "last_signal": {
     "B-BNB_USDT": "2026-10-08T16:00:00+00:00",
     "B-SOL_USDT": "2026-10-08T15:00:00+00:00",
     "B-LTC_USDT": "2026-10-11T10:30:00+00:00",
     "B-QNT_USDT": "2026-10-11T00:15:00+00:00",
     "B-ADA_USDT": "2026-10-08T16:00:00+00:00",
-    "B-ENA_USDT": "2026-10-08T12:30:00+00:00",
+    "B-ENA_USDT": "2026-10-11T13:00:00+00:00",
     "B-ETH_USDT": "2026-10-08T16:00:00+00:00",
     "B-BCH_USDT": "2026-10-08T17:00:00+00:00",
     "B-AAVE_USDT": "2026-10-08T17:00:00+00:00",
