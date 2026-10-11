@@ -1,36 +1,21 @@
 {
   "positions": {
-    "B-XRP_USDT": {
-      "side": "SHORT",
-      "score": 7,
-      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|BELOW_POC|BB|RSI_FALLING|MACD_NEGATIVE",
-      "signal_time": "2026-10-11T10:30:00+00:00",
-      "stop_price": 1.3906,
-      "target_price": null,
-      "profile_shape": "D",
-      "poc": 1.4036187500000001,
-      "vah": 1.409325,
-      "val": 1.3937625,
-      "pair": "B-XRP_USDT",
-      "h1_trend": "SHORT",
-      "entry_time": null,
-      "entry_price": null
-    },
     "B-LTC_USDT": {
       "side": "SHORT",
       "score": 7,
       "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|BELOW_POC|BB|RSI_FALLING|MACD_NEGATIVE",
       "signal_time": "2026-10-11T10:30:00+00:00",
       "stop_price": 63.53,
-      "target_price": null,
+      "target_price": 63.14,
       "profile_shape": "D",
       "poc": 63.70166666666667,
       "vah": 64.12666666666667,
       "val": 63.50333333333333,
       "pair": "B-LTC_USDT",
       "h1_trend": "SHORT",
-      "entry_time": null,
-      "entry_price": null
+      "entry_time": "2026-10-11T10:45:00+00:00",
+      "entry_price": 63.4,
+      "risk_pct": 0.20505
     }
   },
   "last_signal": {
