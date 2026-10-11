@@ -23,15 +23,16 @@
       "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|ABOVE_POC|RSI_RISING",
       "signal_time": "2026-10-11T01:15:00+00:00",
       "stop_price": 0.8538,
-      "target_price": null,
+      "target_price": 0.8985,
       "profile_shape": "B",
       "poc": 0.8263895833333333,
       "vah": 0.8642541666666667,
       "val": 0.8067,
       "pair": "B-APT_USDT",
       "h1_trend": "LONG",
-      "entry_time": null,
-      "entry_price": null
+      "entry_time": "2026-10-11T01:30:00+00:00",
+      "entry_price": 0.8687,
+      "risk_pct": 1.71521
     },
     "B-ARB_USDT": {
       "side": "LONG",
@@ -39,15 +40,16 @@
       "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|ABOVE_POC|BB|MACD_POSITIVE",
       "signal_time": "2026-10-11T01:15:00+00:00",
       "stop_price": 0.19001,
-      "target_price": null,
+      "target_price": 0.20747,
       "profile_shape": "b",
       "poc": 0.18532125,
       "vah": 0.188305,
       "val": 0.1834225,
       "pair": "B-ARB_USDT",
       "h1_trend": "LONG",
-      "entry_time": null,
-      "entry_price": null
+      "entry_time": "2026-10-11T01:30:00+00:00",
+      "entry_price": 0.19583,
+      "risk_pct": 2.97197
     }
   },
   "last_signal": {
