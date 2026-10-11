@@ -1,0 +1,24 @@
+name: TOP100 Paper Trade Verification
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install requirements
+        run: pip install pandas requests
+      - name: Verify open paper trades (read only)
+        run: python TOP100_PAPER_VERIFY.py
+      - name: Downloadable verification CSV
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TOP100_PAPER_VERIFY_results
+          path: TOP100_PAPER_VERIFY_results.csv
+          if-no-files-found: warn
