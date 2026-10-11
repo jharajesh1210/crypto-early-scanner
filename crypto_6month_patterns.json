@@ -1,6 +1,6 @@
 {
   "created_utc": "2026-10-05T16:40:19.361494+00:00",
-  "updated_utc": "2026-10-11T01:32:54.126224+00:00",
+  "updated_utc": "2026-10-11T01:51:10.903132+00:00",
   "history_days": 180,
   "historical_interval": "15m",
   "spike_pct": 3.0,
@@ -5765,6 +5765,81 @@
         "candle_move_pct": {
           "median": 0.493523,
           "scale": 0.731696
+        }
+      }
+    },
+    "DCRUSDT": {
+      "pair": "B-DCR_USDT",
+      "volume_24h_usdt": 5021732.49,
+      "trained_utc": "2026-10-11T01:51:10.903045+00:00",
+      "buy": {
+        "event_count": 148,
+        "rsi": {
+          "median": 51.156881,
+          "scale": 11.208149
+        },
+        "macd_hist_pct": {
+          "median": 0.003282,
+          "scale": 0.212104
+        },
+        "ema_gap_pct": {
+          "median": 0.317437,
+          "scale": 0.870045
+        },
+        "price_vs_bb_middle_pct": {
+          "median": -0.000618,
+          "scale": 1.453386
+        },
+        "bb_width_pct": {
+          "median": 3.50855,
+          "scale": 2.816248
+        },
+        "volume_ratio": {
+          "median": 0.929845,
+          "scale": 0.959791
+        },
+        "price_vs_poc_pct": {
+          "median": 0.143005,
+          "scale": 2.922987
+        },
+        "candle_move_pct": {
+          "median": -0.253414,
+          "scale": 0.640277
+        }
+      },
+      "sell": {
+        "event_count": 132,
+        "rsi": {
+          "median": 54.22726,
+          "scale": 14.837862
+        },
+        "macd_hist_pct": {
+          "median": 0.051827,
+          "scale": 0.178919
+        },
+        "ema_gap_pct": {
+          "median": 0.200031,
+          "scale": 1.028227
+        },
+        "price_vs_bb_middle_pct": {
+          "median": 0.331173,
+          "scale": 1.501637
+        },
+        "bb_width_pct": {
+          "median": 4.052199,
+          "scale": 2.984663
+        },
+        "volume_ratio": {
+          "median": 0.940075,
+          "scale": 1.038585
+        },
+        "price_vs_poc_pct": {
+          "median": 0.810595,
+          "scale": 3.301594
+        },
+        "candle_move_pct": {
+          "median": 0.424243,
+          "scale": 0.715794
         }
       }
     }
