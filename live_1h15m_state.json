@@ -1,23 +1,5 @@
 {
-  "positions": {
-    "B-QNT_USDT": {
-      "side": "SHORT",
-      "score": 6,
-      "reasons": "TREND|VOLUME_1.5X|PRICE_ACTION|BELOW_POC|BB|RSI_FALLING",
-      "signal_time": "2026-10-11T00:15:00+00:00",
-      "stop_price": 241.04,
-      "target_price": 232.7,
-      "profile_shape": "B",
-      "poc": 248.23020833333334,
-      "vah": 249.32958333333335,
-      "val": 239.80166666666668,
-      "pair": "B-QNT_USDT",
-      "h1_trend": "SHORT",
-      "entry_time": "2026-10-11T00:30:00+00:00",
-      "entry_price": 238.26,
-      "risk_pct": 1.16679
-    }
-  },
+  "positions": {},
   "last_signal": {
     "B-BNB_USDT": "2026-10-08T16:00:00+00:00",
     "B-SOL_USDT": "2026-10-08T15:00:00+00:00",
