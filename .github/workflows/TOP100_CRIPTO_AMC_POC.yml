@@ -1,0 +1,66 @@
+
+name: TOP100 CRIPTO AMC POC Paper Scanner
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/15 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: top100-cripto-amc-poc
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python packages
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pandas numpy requests
+
+      - name: Run TOP100 Scanner
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+        run: |
+          python TOP100_CRIPTO_AMC_POC.py
+
+      - name: Save paper trading files to GitHub
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          for file in \
+            TOP100_CRIPTO_AMC_POC_state.json \
+            TOP100_CRIPTO_AMC_POC_trades.csv \
+            TOP100_CRIPTO_AMC_POC_signals.csv \
+            TOP100_CRIPTO_AMC_POC_universe.csv
+          do
+            if [ -f "$file" ]; then
+              git add "$file"
+            fi
+          done
+
+          if git diff --cached --quiet; then
+            echo "No paper trading file changes"
+          else
+            git commit -m "Update TOP100 paper trading data"
+            git push
+          fi
