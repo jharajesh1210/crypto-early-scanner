@@ -1,14 +1,24 @@
 {
-  "last_bar": 1791694200000,
-  "setup": {
-    "side": "LONG",
-    "stage": "CHOCH",
-    "sweep_time": 1791691200000,
-    "extreme": 82751.1,
-    "break_level": 82977.7,
-    "choch_time": 1791694200000
-  },
-  "positions": [],
+  "last_bar": 1791695100000,
+  "setup": null,
+  "positions": [
+    {
+      "side": "LONG",
+      "rr": 2,
+      "entry": 83016.3,
+      "stop": 82751.1,
+      "target": 83546.7,
+      "entry_time": 1791694800000
+    },
+    {
+      "side": "LONG",
+      "rr": 3,
+      "entry": 83016.3,
+      "stop": 82751.1,
+      "target": 83811.9,
+      "entry_time": 1791694800000
+    }
+  ],
   "closed": 0,
   "wins": 0,
   "losses": 0,
