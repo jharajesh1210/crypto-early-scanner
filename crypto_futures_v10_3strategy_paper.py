@@ -6,8 +6,7 @@
 #   Three original V10 strategies, independent paper results
 #
 # PAPER TEST:
-#   RR 1:2
-#   RR 1:3
+#   RR 1:2 profit lock -> RR 1:5 final target
 #
 # IMPORTANT:
 #   PAPER TRADING ONLY
@@ -71,6 +70,7 @@ STOP_LOSS_PCT = 0.50
 
 RR_2 = 2.0
 RR_3 = 3.0
+RR_5 = 5.0
 
 # Approximate round-trip cost used in our research.
 ROUND_TRIP_COST_PCT = 0.10
@@ -788,58 +788,19 @@ def create_trade_rows(signal):
         ),
     }
 
-    rr2 = dict(common)
-
-    rr2.update({
-        "TRADE_ID":
-            signal["time"]
-            + "_" + signal["strategy"] + "_RR2",
-
-        "RR":
-            "1:2",
-
-        "TP_PRICE":
-            round(
-                target_2,
-                8,
-            ),
-
-        "TP_PCT":
-            round(
-                STOP_LOSS_PCT
-                * RR_2,
-                4,
-            ),
+    # One paper leg per new signal: arm at RR2, exit at RR5 or locked RR2.
+    rr5 = dict(common)
+    rr5.update({
+        "TRADE_ID": signal["time"] + "_" + signal["strategy"] + "_RR5_LOCK2_LOCK3",
+        "RR": "1:5_LOCK_1:2_1:3",
+        "TP_PRICE": round(entry + risk_distance * RR_5, 8),
+        "TP_PCT": round(STOP_LOSS_PCT * RR_5, 4),
+        "LOCK_PRICE": round(target_2, 8),
+        "LOCKED_2": 0,
+        "LOCKED_3": 0,
+        "LOCK_STAGE": 0,
     })
-
-    rr3 = dict(common)
-
-    rr3.update({
-        "TRADE_ID":
-            signal["time"]
-            + "_" + signal["strategy"] + "_RR3",
-
-        "RR":
-            "1:3",
-
-        "TP_PRICE":
-            round(
-                target_3,
-                8,
-            ),
-
-        "TP_PCT":
-            round(
-                STOP_LOSS_PCT
-                * RR_3,
-                4,
-            ),
-    })
-
-    return [
-        rr2,
-        rr3,
-    ]
+    return [rr5]
 
 
 # ============================================================
@@ -1103,10 +1064,13 @@ def close_long_trade(
         "STATUS",
     ] = "CLOSED"
 
+    # An all-empty EXIT_TIME CSV column may load as float64.
+    # Explicit string dtype prevents pandas assignment errors.
+    paper["EXIT_TIME"] = paper["EXIT_TIME"].astype("string")
     paper.at[
         row_index,
         "EXIT_TIME",
-    ] = exit_time
+    ] = str(exit_time)
 
     paper.at[
         row_index,
@@ -1151,273 +1115,92 @@ def close_long_trade(
 # UPDATE OPEN PAPER TRADES
 # ============================================================
 
-def update_open_trades(
-    paper,
-    market,
-):
+def update_open_trades(paper, market):
+    """Replay 5m candles: initial SL -> RR2 lock -> RR3 lock -> RR5 exit.
 
-    if paper.empty:
+    Previously CLOSED rows remain unchanged. Existing OPEN trades are upgraded.
+    A lock is checked from the *next* candle after its activation because
+    OHLC candles cannot establish the intrabar ordering of high and low.
+    """
+    if paper.empty or "STATUS" not in paper.columns:
         return paper, []
-
-    if "STATUS" not in paper.columns:
-        return paper, []
-
-    data = ensure_dataframe(
-        market,
-        "trade tracking market",
-    )
-
+    data = ensure_dataframe(market, "trade tracking market").copy()
+    data["datetime"] = pd.to_datetime(data["datetime"], utc=True, errors="coerce")
+    data = data.dropna(subset=["datetime"]).sort_values("datetime")
+    paper["EXIT_TIME"] = paper["EXIT_TIME"].astype("string")
+    paper["RR"] = paper["RR"].astype("string")
+    for column, default in (("LOCKED_2", 0), ("LOCKED_3", 0),
+                            ("LOCK_PRICE", np.nan), ("LOCK_STAGE", 0)):
+        if column not in paper.columns:
+            paper[column] = default
     closed_alerts = []
-
-    open_indexes = (
-        paper[
-            paper["STATUS"]
-            .astype(str)
-            .str.upper()
-            ==
-            "OPEN"
-        ]
-        .index
-        .tolist()
-    )
-
-    if not open_indexes:
-        return paper, closed_alerts
-
-    for row_index in open_indexes:
-
-        entry_time = pd.to_datetime(
-            paper.at[
-                row_index,
-                "ENTRY_TIME",
-            ],
-            utc=True,
-            errors="coerce",
-        )
-
-        if pd.isna(entry_time):
+    open_indexes = paper.index[paper["STATUS"].astype(str).str.upper().eq("OPEN")]
+    for idx in open_indexes:
+        entry_time = pd.to_datetime(paper.at[idx, "ENTRY_TIME"], utc=True, errors="coerce")
+        entry = safe_float(paper.at[idx, "ENTRY_PRICE"])
+        original_stop = safe_float(paper.at[idx, "SL_PRICE"])
+        if pd.isna(entry_time) or not np.isfinite(entry) or not np.isfinite(original_stop):
             continue
-
-        entry_price = float(
-            paper.at[
-                row_index,
-                "ENTRY_PRICE",
-            ]
-        )
-
-        stop = float(
-            paper.at[
-                row_index,
-                "SL_PRICE",
-            ]
-        )
-
-        target = float(
-            paper.at[
-                row_index,
-                "TP_PRICE",
-            ]
-        )
-
-        future = (
-            data[
-                pd.to_datetime(
-                    data["datetime"],
-                    utc=True,
-                )
-                >
-                entry_time
-            ]
-            .copy()
-        )
-
+        risk = entry - original_stop
+        if risk <= 0:
+            continue
+        rr2, rr3, target = (entry + multiple * risk for multiple in (2, 3, 5))
+        paper.at[idx, "RR"] = "1:5_LOCK_1:2_1:3"
+        paper.at[idx, "TP_PRICE"] = round(target, 8)
+        paper.at[idx, "TP_PCT"] = round(STOP_LOSS_PCT * 5, 4)
+        stage = 0
+        future = data.loc[data["datetime"] > entry_time].head(MAX_HOLD_BARS)
         if future.empty:
             continue
-
-        future = (
-            future
-            .sort_values(
-                "datetime"
-            )
-            .head(
-                MAX_HOLD_BARS
-            )
-        )
-
         closed = False
-
-        for bars_held, (_, candle) in enumerate(
-            future.iterrows(),
-            start=1,
-        ):
-
-            candle_high = float(
-                candle["high"]
-            )
-
-            candle_low = float(
-                candle["low"]
-            )
-
-            candle_close = float(
-                candle["close"]
-            )
-
-            candle_time = pd.Timestamp(
-                candle["datetime"]
-            )
-
-            if candle_time.tzinfo is None:
-
-                candle_time = (
-                    candle_time
-                    .tz_localize("UTC")
-                )
-
-            else:
-
-                candle_time = (
-                    candle_time
-                    .tz_convert("UTC")
-                )
-
-            exit_time = (
-                candle_time
-                .isoformat()
-            )
-
-            hit_sl = (
-                candle_low
-                <=
-                stop
-            )
-
-            hit_tp = (
-                candle_high
-                >=
-                target
-            )
-
-            # Conservative same-bar rule.
-            if hit_sl and hit_tp:
-
-                if SAME_BAR_POLICY == "SL_FIRST":
-
-                    exit_price = stop
-                    reason = "SL"
-
-                else:
-
-                    exit_price = target
-                    reason = "TP"
-
-                paper = close_long_trade(
-                    paper,
-                    row_index,
-                    exit_price,
-                    exit_time,
-                    reason,
-                    bars_held,
-                )
-
-                closed = True
-                break
-
-            if hit_sl:
-
-                paper = close_long_trade(
-                    paper,
-                    row_index,
-                    stop,
-                    exit_time,
-                    "SL",
-                    bars_held,
-                )
-
-                closed = True
-                break
-
-            if hit_tp:
-
-                paper = close_long_trade(
-                    paper,
-                    row_index,
-                    target,
-                    exit_time,
-                    "TP",
-                    bars_held,
-                )
-
-                closed = True
-                break
-
-        # Maximum 24h hold completed.
-        if (
-            not closed
-            and
-            len(future)
-            >=
-            MAX_HOLD_BARS
-        ):
-
-            last_candle = (
-                future.iloc[
-                    MAX_HOLD_BARS - 1
-                ]
-            )
-
-            last_time = pd.Timestamp(
-                last_candle[
-                    "datetime"
-                ]
-            )
-
-            if last_time.tzinfo is None:
-
-                last_time = (
-                    last_time
-                    .tz_localize("UTC")
-                )
-
-            else:
-
-                last_time = (
-                    last_time
-                    .tz_convert("UTC")
-                )
-
-            paper = close_long_trade(
-                paper,
-                row_index,
-                float(
-                    last_candle[
-                        "close"
-                    ]
-                ),
-                last_time.isoformat(),
-                "TIME_EXIT",
-                MAX_HOLD_BARS,
-            )
-
+        for held, (_, candle) in enumerate(future.iterrows(), start=1):
+            high = float(candle["high"])
+            low = float(candle["low"])
+            opening = float(candle["open"])
+            when = candle["datetime"].isoformat()
+            if stage == 0:
+                if low <= original_stop:
+                    price = min(opening, original_stop)
+                    paper = close_long_trade(paper, idx, price, when, "SL", held)
+                    closed = True
+                    break
+                if high >= rr2:
+                    stage = 2
+                    continue
+            elif stage == 2:
+                if low <= rr2:
+                    price = min(opening, rr2)
+                    paper = close_long_trade(paper, idx, price, when, "LOCKED_RR2", held)
+                    closed = True
+                    break
+                if high >= rr3:
+                    stage = 3
+                    continue
+            else:  # RR3 profit lock active
+                if low <= rr3:
+                    price = min(opening, rr3)
+                    paper = close_long_trade(paper, idx, price, when, "LOCKED_RR3", held)
+                    closed = True
+                    break
+                if high >= target:
+                    paper = close_long_trade(paper, idx, target, when, "TP_RR5", held)
+                    closed = True
+                    break
+        paper.at[idx, "LOCK_STAGE"] = stage
+        paper.at[idx, "LOCKED_2"] = int(stage >= 2)
+        paper.at[idx, "LOCKED_3"] = int(stage >= 3)
+        paper.at[idx, "LOCK_PRICE"] = round(
+            rr3 if stage >= 3 else rr2 if stage >= 2 else original_stop, 8
+        )
+        if not closed and len(future) >= MAX_HOLD_BARS:
+            last = future.iloc[MAX_HOLD_BARS - 1]
+            paper = close_long_trade(paper, idx, float(last["close"]),
+                                     last["datetime"].isoformat(),
+                                     "TIME_EXIT", MAX_HOLD_BARS)
             closed = True
-
         if closed:
-
-            trade = (
-                paper.loc[
-                    row_index
-                ]
-                .to_dict()
-            )
-
-            closed_alerts.append(
-                trade
-            )
-
-    return (
-        paper,
-        closed_alerts,
-    )
+            closed_alerts.append(paper.loc[idx].to_dict())
+    return paper, closed_alerts
 
 
 # ============================================================
@@ -1442,7 +1225,7 @@ def new_signal_message(signal):
 
     sl = entry - risk
     tp2 = entry + risk * 2.0
-    tp3 = entry + risk * 3.0
+    tp5 = entry + risk * 5.0
 
     squeeze = bool(
         row.get(
@@ -1468,13 +1251,12 @@ def new_signal_message(signal):
         f"Entry: {entry:.2f}\n"
         f"SL: {sl:.2f} (-{STOP_LOSS_PCT:.2f}%)\n\n"
 
-        "Paper A - RR 1:2\n"
-        f"TP: {tp2:.2f} "
-        f"(+{STOP_LOSS_PCT * 2:.2f}%)\n\n"
-
-        "Paper B - RR 1:3\n"
-        f"TP: {tp3:.2f} "
-        f"(+{STOP_LOSS_PCT * 3:.2f}%)\n\n"
+        "RR 1:2 -> LOCK PROFIT (not exit)\n"
+        f"New SL after RR2: {tp2:.2f}\n"
+        "RR 1:3 -> MOVE LOCK TO RR3 (not exit)\n"
+        f"New SL after RR3: {entry + 3 * (entry - sl):.2f}\n\n"
+        "Final Target - RR 1:5\n"
+        f"TP: {tp5:.2f} (+{STOP_LOSS_PCT * 5:.2f}%)\n\n"
 
         f"RSI: {safe_float(row['rsi']):.2f}\n"
         f"BB Squeeze: {squeeze_text}\n"
@@ -1516,6 +1298,15 @@ def closed_trade_message(trade):
 
     if reason == "TP":
         result = "WIN - TP HIT"
+
+    elif reason == "LOCKED_RR2":
+        result = "PROFIT LOCK EXIT AT RR2"
+
+    elif reason == "LOCKED_RR3":
+        result = "PROFIT LOCK EXIT AT RR3"
+
+    elif reason == "TP_RR5":
+        result = "WIN - RR5 TARGET HIT"
 
     elif reason == "SL":
         result = "LOSS - SL HIT"
@@ -1583,7 +1374,7 @@ def cumulative_trade_summary(paper, strategy, rr):
         + f"\n\nALL STRATEGIES (RR {rr})\n"
         + metrics(same_rr)
         + "\n\nNote: returns are added per paper trade, not account P&L; "
-          "RR 1:2 and 1:3 are separate scenarios."
+          "RR2 and RR3 are profit-lock milestones; RR5 is the target."
     )
 
 
@@ -1851,7 +1642,7 @@ def initialize_output_files(state):
         "EMA20", "EMA50", "POC", "POC_DISTANCE_%",
         "SUPPORT_DISTANCE_%", "BB_POSITION", "VOLUME_RATIO",
         "TREND_1H", "CREATED_AT_UTC", "TRADE_ID", "RR", "TP_PRICE",
-        "TP_PCT",
+        "TP_PCT", "LOCK_PRICE", "LOCKED_2", "LOCKED_3", "LOCK_STAGE",
     ]
     signal_columns = [
         "PAIR", "STRATEGY", "SIGNAL_TIME", "ENTRY_PRICE", "RSI_5M",
@@ -1895,7 +1686,7 @@ def main():
     )
 
     print(
-        "PAPER RR: 1:2 AND 1:3"
+        "PAPER: RR2 LOCK -> RR3 LOCK -> RR5 TARGET"
     )
 
     print(
