@@ -1,12 +1,15 @@
 {
-  "last_bar": 1791788100000,
+  "last_bar": 1791789300000,
   "setup": {
     "side": "LONG",
-    "stage": "CHOCH",
+    "stage": "FVG",
     "sweep_time": 1791786600000,
     "extreme": 83732.4,
     "break_level": 84086.2,
-    "choch_time": 1791788100000
+    "choch_time": 1791788100000,
+    "fvg_low": 84078.1,
+    "fvg_high": 84101.5,
+    "fvg_time": 1791788400000
   },
   "positions": [],
   "closed": 2,
