@@ -1067,6 +1067,7 @@ def close_long_trade(
     # An all-empty EXIT_TIME CSV column may load as float64.
     # Explicit string dtype prevents pandas assignment errors.
     paper["EXIT_TIME"] = paper["EXIT_TIME"].astype("string")
+    paper["EXIT_REASON"] = paper["EXIT_REASON"].astype("string")
     paper.at[
         row_index,
         "EXIT_TIME",
@@ -1128,6 +1129,7 @@ def update_open_trades(paper, market):
     data["datetime"] = pd.to_datetime(data["datetime"], utc=True, errors="coerce")
     data = data.dropna(subset=["datetime"]).sort_values("datetime")
     paper["EXIT_TIME"] = paper["EXIT_TIME"].astype("string")
+    paper["EXIT_REASON"] = paper["EXIT_REASON"].astype("string")
     paper["RR"] = paper["RR"].astype("string")
     for column, default in (("LOCKED_2", 0), ("LOCKED_3", 0),
                             ("LOCK_PRICE", np.nan), ("LOCK_STAGE", 0)):
