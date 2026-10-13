@@ -1,17 +1,24 @@
 {
-  "last_bar": 1791883800000,
-  "setup": {
-    "side": "SHORT",
-    "stage": "FVG",
-    "sweep_time": 1791879300000,
-    "extreme": 84134.2,
-    "break_level": 83654.1,
-    "choch_time": 1791881100000,
-    "fvg_low": 83646.7,
-    "fvg_high": 83711.6,
-    "fvg_time": 1791881400000
-  },
-  "positions": [],
+  "last_bar": 1791884700000,
+  "setup": null,
+  "positions": [
+    {
+      "side": "SHORT",
+      "rr": 2,
+      "entry": 83567.0,
+      "stop": 84134.2,
+      "target": 82432.6,
+      "entry_time": 1791884400000
+    },
+    {
+      "side": "SHORT",
+      "rr": 3,
+      "entry": 83567.0,
+      "stop": 84134.2,
+      "target": 81865.40000000001,
+      "entry_time": 1791884400000
+    }
+  ],
   "closed": 2,
   "wins": 2,
   "losses": 0,
