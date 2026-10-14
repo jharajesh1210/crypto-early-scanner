@@ -34,6 +34,46 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install pandas numpy requests
 
+      - name: Test TOP100 Telegram
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+        run: |
+          python - <<'PY'
+          import os
+          import requests
+
+          token = os.environ.get("BOT_TOKEN")
+          chat = os.environ.get("CHAT_ID")
+
+          if not token or not chat:
+              raise RuntimeError(
+                  "BOT_TOKEN or CHAT_ID is missing"
+              )
+
+          response = requests.post(
+              f"https://api.telegram.org/bot{token}/sendMessage",
+              json={
+                  "chat_id": chat,
+                  "text": (
+                      "TOP100 Scanner Telegram "
+                      "TEST SUCCESS - PAPER ONLY"
+                  )
+              },
+              timeout=20
+          )
+
+          response.raise_for_status()
+
+          if not response.json().get("ok"):
+              raise RuntimeError(
+                  "Telegram did not confirm success"
+              )
+
+          print("TOP100 Telegram test sent successfully")
+          PY
+
       - name: Run TOP100 Scanner
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
