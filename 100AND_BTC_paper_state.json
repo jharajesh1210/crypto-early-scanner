@@ -2,19 +2,25 @@
   "version": 1,
   "coins": {
     "B-BNB_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-SOL_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
-      "setup": null
+      "last_bar": "2026-10-14T23:00:00+00:00",
+      "setup": {
+        "side": "SHORT",
+        "stage": "SWEEP",
+        "sweep_time": "2026-10-14T22:50:00+00:00",
+        "extreme": 104.7,
+        "break_level": 104.19
+      }
     },
     "B-ETH_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-XRP_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": {
         "side": "SHORT",
         "stage": "SWEEP",
@@ -24,52 +30,49 @@
       }
     },
     "B-BTC_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-HYPE_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-TRX_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-DOGE_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
-      "setup": null
+      "last_bar": "2026-10-14T23:00:00+00:00",
+      "setup": {
+        "side": "SHORT",
+        "stage": "SWEEP",
+        "sweep_time": "2026-10-14T22:55:00+00:00",
+        "extreme": 0.08201,
+        "break_level": 0.0814
+      }
     },
     "B-XMR_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-ZEC_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-ADA_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-NEAR_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
-      "setup": {
-        "side": "LONG",
-        "stage": "FVG",
-        "sweep_time": "2026-10-14T22:20:00+00:00",
-        "extreme": 4.813,
-        "break_level": 4.863,
-        "fvg_low": 4.854,
-        "fvg_high": 4.86,
-        "fvg_time": "2026-10-14T22:35:00+00:00"
-      }
+      "last_bar": "2026-10-14T23:00:00+00:00",
+      "setup": null
     },
     "B-BCH_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-LINK_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": {
         "side": "SHORT",
         "stage": "SWEEP",
@@ -79,27 +82,27 @@
       }
     },
     "B-XLM_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-UNI_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-LTC_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-CC_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-SUI_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-GRAM_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": {
         "side": "SHORT",
         "stage": "SWEEP",
@@ -109,7 +112,7 @@
       }
     },
     "B-HBAR_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": {
         "side": "SHORT",
         "stage": "SWEEP",
@@ -119,79 +122,61 @@
       }
     },
     "B-BTW_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-AVAX_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
-      "setup": {
-        "side": "SHORT",
-        "stage": "SWEEP",
-        "sweep_time": "2026-10-14T22:30:00+00:00",
-        "extreme": 10.024,
-        "break_level": 9.949
-      }
+      "last_bar": "2026-10-14T23:00:00+00:00",
+      "setup": null
     },
     "B-TAO_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
-      "setup": {
-        "side": "SHORT",
-        "stage": "SWEEP",
-        "sweep_time": "2026-10-14T21:35:00+00:00",
-        "extreme": 270.87,
-        "break_level": 268.36
-      }
+      "last_bar": "2026-10-14T23:00:00+00:00",
+      "setup": null
     },
     "B-ENA_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
-      "setup": {
-        "side": "SHORT",
-        "stage": "SWEEP",
-        "sweep_time": "2026-10-14T22:35:00+00:00",
-        "extreme": 0.19745,
-        "break_level": 0.19553
-      }
+      "last_bar": "2026-10-14T23:00:00+00:00",
+      "setup": null
     },
     "B-QNT_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-AAVE_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-PUMP_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-ONDO_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": {
         "side": "SHORT",
         "stage": "SWEEP",
-        "sweep_time": "2026-10-14T22:35:00+00:00",
-        "extreme": 0.4479,
+        "sweep_time": "2026-10-14T22:50:00+00:00",
+        "extreme": 0.4486,
         "break_level": 0.4449
       }
     },
     "B-M_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-DOT_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-WLD_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-ASTER_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-WLFI_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": {
         "side": "SHORT",
         "stage": "SWEEP",
@@ -201,21 +186,21 @@
       }
     },
     "B-PAXG_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": {
         "side": "SHORT",
         "stage": "SWEEP",
-        "sweep_time": "2026-10-14T22:30:00+00:00",
-        "extreme": 4118.99,
+        "sweep_time": "2026-10-14T23:00:00+00:00",
+        "extreme": 4116.03,
         "break_level": 4112.28
       }
     },
     "B-ICP_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-SKY_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": {
         "side": "SHORT",
         "stage": "CHOCH",
@@ -225,7 +210,7 @@
       }
     },
     "B-ARB_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": {
         "side": "SHORT",
         "stage": "SWEEP",
@@ -235,23 +220,23 @@
       }
     },
     "B-JST_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-VVV_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-MORPHO_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-ALGO_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-JUP_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": {
         "side": "SHORT",
         "stage": "SWEEP",
@@ -261,55 +246,52 @@
       }
     },
     "B-KAS_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": {
         "side": "SHORT",
-        "stage": "SWEEP",
+        "stage": "FVG",
         "sweep_time": "2026-10-14T22:05:00+00:00",
         "extreme": 0.03741,
-        "break_level": 0.03706
+        "break_level": 0.03706,
+        "fvg_low": 0.03699,
+        "fvg_high": 0.03721,
+        "fvg_time": "2026-10-14T22:50:00+00:00"
       }
     },
     "B-POL_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-RENDER_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
-      "setup": {
-        "side": "SHORT",
-        "stage": "SWEEP",
-        "sweep_time": "2026-10-14T22:35:00+00:00",
-        "extreme": 1.93,
-        "break_level": 1.904
-      }
+      "last_bar": "2026-10-14T23:00:00+00:00",
+      "setup": null
     },
     "B-FIL_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-ETC_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-AERO_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-LIT_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-STX_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-ATOM_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-ZRO_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": {
         "side": "SHORT",
         "stage": "SWEEP",
@@ -319,17 +301,17 @@
       }
     },
     "B-INJ_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": {
         "side": "SHORT",
         "stage": "SWEEP",
-        "sweep_time": "2026-10-14T22:30:00+00:00",
-        "extreme": 7.668,
+        "sweep_time": "2026-10-14T22:50:00+00:00",
+        "extreme": 7.673,
         "break_level": 7.598
       }
     },
     "B-CAKE_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": {
         "side": "SHORT",
         "stage": "SWEEP",
@@ -339,23 +321,29 @@
       }
     },
     "B-APT_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
-      "setup": null
+      "last_bar": "2026-10-14T23:00:00+00:00",
+      "setup": {
+        "side": "SHORT",
+        "stage": "SWEEP",
+        "sweep_time": "2026-10-14T22:55:00+00:00",
+        "extreme": 0.8166,
+        "break_level": 0.8105
+      }
     },
     "B-PRL_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-NIGHT_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-PYTH_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": null
     },
     "B-STABLE_USDT": {
-      "last_bar": "2026-10-14T22:35:00+00:00",
+      "last_bar": "2026-10-14T23:00:00+00:00",
       "setup": {
         "side": "SHORT",
         "stage": "CHOCH",
@@ -378,7 +366,7 @@
       "level3": 1060.9800000000005,
       "target4": 1036.3200000000006,
       "stage": 0,
-      "last_checked": "2026-10-14T22:35:00+00:00"
+      "last_checked": "2026-10-14T23:00:00+00:00"
     }
   ],
   "closed": 0,
