@@ -49,7 +49,7 @@ jobs:
 
           if not token or not chat:
               raise RuntimeError(
-                  "BOT_TOKEN or CHAT_ID is missing"
+                  "Telegram secrets missing"
               )
 
           response = requests.post(
@@ -57,21 +57,15 @@ jobs:
               json={
                   "chat_id": chat,
                   "text": (
-                      "TOP100 Scanner Telegram "
-                      "TEST SUCCESS - PAPER ONLY"
+                      "TOP100 Scanner Telegram TEST "
+                      "SUCCESS - PAPER ONLY"
                   )
               },
               timeout=20
           )
 
           response.raise_for_status()
-
-          if not response.json().get("ok"):
-              raise RuntimeError(
-                  "Telegram did not confirm success"
-              )
-
-          print("TOP100 Telegram test sent successfully")
+          print("TOP100 Telegram test successful")
           PY
 
       - name: Run TOP100 Scanner
@@ -90,16 +84,25 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+          echo "Preparing paper trading files"
+
+          # Universe CSV is regenerated every scan.
+          # Do not commit it because it causes merge conflicts.
+          git restore --worktree \
+            TOP100_CRIPTO_AMC_POC_universe.csv \
+            2>/dev/null || true
+
+          # Keep important paper trading history.
           FILES=(
             TOP100_CRIPTO_AMC_POC_state.json
             TOP100_CRIPTO_AMC_POC_trades.csv
             TOP100_CRIPTO_AMC_POC_signals.csv
-            TOP100_CRIPTO_AMC_POC_universe.csv
           )
 
           for file in "${FILES[@]}"; do
             if [ -f "$file" ]; then
               git add "$file"
+              echo "Prepared: $file"
             fi
           done
 
@@ -111,14 +114,16 @@ jobs:
           git commit -m "Update TOP100 paper trading data"
 
           for attempt in 1 2 3 4 5; do
+
             echo "Push attempt $attempt of 5"
 
             git fetch origin main
 
             if ! git rebase origin/main; then
-              echo "Rebase conflict detected."
+              echo "IMPORTANT: Paper history conflict"
+              echo "Stopping without overwriting data"
+
               git rebase --abort || true
-              echo "Stopping to protect paper trading data."
               exit 1
             fi
 
@@ -127,9 +132,10 @@ jobs:
               exit 0
             fi
 
-            echo "Push rejected. Retrying..."
+            echo "Push rejected, retrying"
             sleep 5
+
           done
 
-          echo "ERROR: Could not save paper trading data."
+          echo "ERROR: Paper trading data not saved"
           exit 1
