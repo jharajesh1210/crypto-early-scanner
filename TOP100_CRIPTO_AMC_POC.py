@@ -24,7 +24,7 @@ UNIVERSE = Path(NAME + '_universe.csv')
 MIN_TURNOVER = 500_000
 ACCUM_HOURS = 20
 MAX_RANGE_PCT = 2.0
-RR_VALUES = (2, 3)
+RR_VALUES = (4,)  # New positions use 4R with 2R/3R trailing stops
 FEE_SIDE = 0.0005
 SLIP_SIDE = 0.0002
 MAX_WORKERS = 5
@@ -390,206 +390,122 @@ def volume_candidate(item):
     }
 
 
-def open_paper(
-    state, pair, direction, bar_end,
-    raw_entry, stop, poc, turnover
-):
-    if any(
-        t['pair'] == pair
-        for t in state['open_trades']
-    ):
+def open_paper(state, pair, direction, bar_end, raw_entry, stop, poc, turnover):
+    # One position per signal; trailing lock at 2R and 3R; final exit at 4R.
+    if any(t['pair'] == pair for t in state['open_trades']):
         return
-
-    entry = raw_entry * (
-        1 + SLIP_SIDE
-        if direction == 'LONG'
-        else 1 - SLIP_SIDE
-    )
-
-    if (
-        direction == 'LONG' and stop >= entry
-    ) or (
-        direction == 'SHORT' and stop <= entry
-    ):
+    entry = raw_entry * (1 + SLIP_SIDE if direction == 'LONG' else 1 - SLIP_SIDE)
+    if (direction == 'LONG' and stop >= entry) or (direction == 'SHORT' and stop <= entry):
         return
-
     risk = abs(entry - stop)
-
-    if (
-        entry <= 0
-        or not 0.0005 <= risk / entry <= 0.10
-    ):
+    if entry <= 0 or not 0.0005 <= risk / entry <= 0.10:
         return
-
-    for rr in RR_VALUES:
-        if direction == 'LONG':
-            target = entry + rr * risk
-        else:
-            target = entry - rr * risk
-
-        trade = {
-            'id': f'{pair}-{iso(bar_end)}-RR{rr}',
-            'pair': pair,
-            'direction': direction,
-            'rr': rr,
-            'entry_time': iso(bar_end),
-            'entry': float(entry),
-            'stop': float(stop),
-            'target': float(target),
-            'poc': float(poc),
-            'turnover': float(turnover),
-            'last_checked_5m': iso(bar_end)
-        }
-
-        state['open_trades'].append(trade)
-
-        append_csv(SIGNALS, {
-            'trade_id': trade['id'],
-            'pair': pair,
-            'direction': direction,
-            'entry_time': iso(bar_end),
-            'entry': entry,
-            'stop': stop,
-            'target': target,
-            'rr': rr,
-            'approx_poc': poc,
-            'turnover_usdt': turnover
-        })
-
+    sign = 1 if direction == 'LONG' else -1
+    trade = {
+        'id': f'{pair}-{iso(bar_end)}-TRAIL-RR4',
+        'pair': pair, 'direction': direction, 'rr': 4,
+        'entry_time': iso(bar_end), 'entry': float(entry),
+        'stop': float(stop), 'original_stop': float(stop),
+        'target': float(entry + sign * 4 * risk),
+        'poc': float(poc), 'turnover': float(turnover),
+        'last_checked_5m': iso(bar_end),
+        'locked_rr': 0, 'trailing_stop': float(stop),
+        'strategy': 'TRAIL_RR4'
+    }
+    state['open_trades'].append(trade)
+    append_csv(SIGNALS, {
+        'trade_id': trade['id'], 'pair': pair, 'direction': direction,
+        'entry_time': iso(bar_end), 'entry': entry, 'stop': stop,
+        'target': trade['target'], 'rr': 4,
+        'approx_poc': poc, 'turnover_usdt': turnover
+    })
     telegram(
-        f'PAPER ENTRY | {NAME}\n'
-        f'{pair} {direction}\n'
-        f'Entry approx: {entry:.8g}\n'
-        f'SL: {stop:.8g}\n'
-        f'RR2 and RR3 opened\n'
-        f'Approx POC: {poc:.8g}\n'
+        f'PAPER ENTRY | {NAME}\n{pair} {direction}\n'
+        f'Entry approx: {entry:.8g}\nOriginal SL: {stop:.8g}\n'
+        'At 1:2 lock SL at 1:2; at 1:3 lock SL at 1:3; final TP 1:4.\n'
         'No real order. Candle-close paper fill.'
     )
+    LOG.info('PAPER ENTRY %s %s at %s TRAIL-RR4', pair, direction, iso(bar_end))
 
-    LOG.info(
-        'PAPER ENTRY %s %s at %s',
-        pair, direction, iso(bar_end)
-    )
 
 
 def settle_trades(state, cached_5m):
     remaining = []
-
     for trade in state['open_trades']:
         pair = trade['pair']
-
         if pair not in cached_5m:
             cached_5m[pair] = candles(pair, 5, 3)
-
         df = cached_5m[pair]
-
         if df.empty:
             remaining.append(trade)
             continue
-
-        since = pd.Timestamp(
-            trade['last_checked_5m']
-        )
-
+        since = pd.Timestamp(trade['last_checked_5m'])
         newer = df[df.index >= since]
         outcome = None
-
+        trailing = trade.get('strategy') == 'TRAIL_RR4'
+        entry = float(trade['entry'])
+        original_stop = float(trade.get('original_stop', trade['stop']))
+        risk = abs(entry - original_stop)
+        sign = 1 if trade['direction'] == 'LONG' else -1
         for t, bar in newer.iterrows():
-            if trade['direction'] == 'LONG':
-                hit_sl = (
-                    bar['low'] <= trade['stop']
-                )
-                hit_tp = (
-                    bar['high'] >= trade['target']
-                )
+            active_stop = float(trade.get('trailing_stop', trade['stop'])) if trailing else float(trade['stop'])
+            target = float(trade['target'])
+            if sign == 1:
+                hit_sl = bar['low'] <= active_stop
+                hit_tp = bar['high'] >= target
             else:
-                hit_sl = (
-                    bar['high'] >= trade['stop']
-                )
-                hit_tp = (
-                    bar['low'] <= trade['target']
-                )
-
-            # Conservative SL-first assumption.
+                hit_sl = bar['high'] >= active_stop
+                hit_tp = bar['low'] <= target
+            # Conservative ordering: the stop active at the START of this
+            # candle has priority. New milestones activate on the NEXT candle.
             if hit_sl or hit_tp:
-                outcome = (
-                    'SL' if hit_sl else 'TP',
-                    t,
-                    trade['stop']
-                    if hit_sl else trade['target']
-                )
+                result = ('TRAIL_SL' if trailing and trade.get('locked_rr', 0) else 'SL') if hit_sl else 'TP_RR4' if trailing else 'TP'
+                outcome = (result, t, active_stop if hit_sl else target)
                 break
-
+            if trailing and risk > 0:
+                best = float(bar['high']) if sign == 1 else float(bar['low'])
+                reached = sign * (best - entry) / risk
+                current_lock = int(trade.get('locked_rr', 0))
+                new_lock = 3 if reached >= 3 else 2 if reached >= 2 else current_lock
+                if new_lock > current_lock:
+                    trade['locked_rr'] = new_lock
+                    trade['trailing_stop'] = float(entry + sign * new_lock * risk)
+                    LOG.info('TRAIL LOCK %s %s reached 1:%d; new SL %.8g (next candle)', pair, trade['direction'], new_lock, trade['trailing_stop'])
+                    telegram(
+                        f'PAPER TRAILING SL | {NAME}\n{pair} {trade["direction"]}\n'
+                        f'1:{new_lock} reached; SL locked at {trade["trailing_stop"]:.8g}\n'
+                        'Effective from next 5m candle. No real order.'
+                    )
         if outcome is None:
             if not newer.empty:
-                trade['last_checked_5m'] = iso(
-                    newer.index[-1]
-                    + pd.Timedelta(minutes=5)
-                )
-
+                trade['last_checked_5m'] = iso(newer.index[-1] + pd.Timedelta(minutes=5))
             remaining.append(trade)
             continue
-
         result, exit_time, raw_exit = outcome
-
-        if trade['direction'] == 'LONG':
-            exit_price = raw_exit * (
-                1 - SLIP_SIDE
-            )
-        else:
-            exit_price = raw_exit * (
-                1 + SLIP_SIDE
-            )
-
-        gross = (
-            exit_price / trade['entry'] - 1
-        ) * 100
-
-        if trade['direction'] == 'SHORT':
-            gross = -gross
-
+        exit_price = raw_exit * (1 - SLIP_SIDE if sign == 1 else 1 + SLIP_SIDE)
+        gross = sign * (exit_price / entry - 1) * 100
         net = gross - 2 * FEE_SIDE * 100
-
         state['closed_count'] += 1
         state['closed_wins'] += int(net > 0)
         state['net_return_sum_pct'] += net
-
         append_csv(TRADES, {
-            'trade_id': trade['id'],
-            'pair': pair,
-            'direction': trade['direction'],
-            'rr': trade['rr'],
-            'entry_time': trade['entry_time'],
-            'exit_time': iso(exit_time),
-            'entry': trade['entry'],
-            'stop': trade['stop'],
-            'target': trade['target'],
-            'exit': exit_price,
-            'result': result,
+            'trade_id': trade['id'], 'pair': pair,
+            'direction': trade['direction'], 'rr': trade['rr'],
+            'entry_time': trade['entry_time'], 'exit_time': iso(exit_time),
+            'entry': entry, 'stop': trade['stop'], 'target': trade['target'],
+            'exit': exit_price, 'result': result,
             'net_return_pct_per_leg': round(net, 4)
         })
-
-        rate = (
-            100 * state['closed_wins']
-            / state['closed_count']
-        )
-
+        rate = 100 * state['closed_wins'] / state['closed_count']
         telegram(
-            f'PAPER EXIT | {NAME}\n'
-            f'{trade["id"]}\n'
-            f'{result}\n'
-            f'Net per-leg return: {net:+.2f}%\n'
-            f'Closed legs: {state["closed_count"]}\n'
-            f'Win rate: {rate:.1f}%\n'
-            'No real order.'
+            f'PAPER EXIT | {NAME}\n{trade["id"]}\n{result}\n'
+            f'Net per-position return: {net:+.2f}%\n'
+            f'Closed positions/legs: {state["closed_count"]}\n'
+            f'Win rate: {rate:.1f}%\nNo real order.'
         )
-
-        LOG.info(
-            'PAPER EXIT %s %s %.2f%%',
-            trade['id'], result, net
-        )
-
+        LOG.info('PAPER EXIT %s %s %.2f%%', trade['id'], result, net)
     state['open_trades'] = remaining
+
 
 
 def process_coin(state, coin, cached_5m):
