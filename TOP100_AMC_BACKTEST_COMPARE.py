@@ -1,4 +1,4 @@
-"""Independent CoinDCX futures AMC/POC historical comparison. PAPER RESEARCH ONLY.
+"""Original TOP100 AMC backtest updated: SMC only versus SMC + 5m BB(20,2) rejection. PAPER RESEARCH ONLY.
 Does not read/write live paper state. Run: python TOP100_AMC_BACKTEST_COMPARE.py
 Env: BACKTEST_DAYS=30, BACKTEST_SYMBOLS=ZEC,BTC (optional), BACKTEST_MAX_COINS=60.
 """
@@ -12,7 +12,8 @@ import requests
 DAYS = int(os.getenv('BACKTEST_DAYS','30'))
 MAX_COINS = int(os.getenv('BACKTEST_MAX_COINS','60'))
 SYMBOLS = {s.strip().upper() for s in os.getenv('BACKTEST_SYMBOLS','').split(',') if s.strip()}
-HOURS = (1,2,4,6)
+HOURS = (4,6)
+MODES = ('SMC_ONLY','SMC_BB_REJECTION')
 RANGE_LIMIT = 2.0
 MIN_24H_TURNOVER = 500_000.0
 FEE_SIDE, SLIP_SIDE = .0005, .0002
@@ -111,16 +112,40 @@ def settle(entry_idx,side,entry,stop,df5):
         elif reached>=2 and lock<2:lock=2;trail=entry+sign*2*risk
     return None
 
-def simulate(symbol,pair,df5,hours):
+def add_bollinger(df5):
+    """BB(20,2) on closed 5m candles. No future values."""
+    d = df5.copy()
+    mid = d['close'].rolling(20, min_periods=20).mean()
+    dev = d['close'].rolling(20, min_periods=20).std(ddof=0)
+    d['bb_upper'] = mid + 2 * dev
+    d['bb_lower'] = mid - 2 * dev
+    return d
+
+
+def bb_rejection_in_sweep(df5, start, side):
+    """Within the 15m sweep candle, require a 5m band touch and close back inside.
+    SHORT: high >= upper band and close < upper band.
+    LONG: low <= lower band and close > lower band.
+    All three 5m candles must be closed before next 15m confirmation.
+    """
+    window = df5.loc[(df5.index >= start) & (df5.index < start + pd.Timedelta(minutes=15))]
+    if len(window) != 3:
+        return False
+    if side == 'SHORT':
+        return bool(((window.high >= window.bb_upper) & (window.close < window.bb_upper)).fillna(False).any())
+    return bool(((window.low <= window.bb_lower) & (window.close > window.bb_lower)).fillna(False).any())
+
+
+def simulate(symbol,pair,df5,hours,mode):
     bars=aggregate(df5,15);hourly=aggregate(df5,60)
-    if len(bars)<10 or len(hourly)<30:return [],{'symbol':symbol,'hours':hours,'eligible_bars':0,'accum_pass':0,'sweeps':0,'confirmations':0,'entries':0}
+    if len(bars)<10 or len(hourly)<30:return [],{'symbol':symbol,'hours':hours,'mode':mode,'eligible_bars':0,'accum_pass':0,'sweeps':0,'bb_rejections':0,'confirmations':0,'entries':0}
     hourly=hourly.copy()
     hourly['turnover']=hourly.close*hourly.volume
     # Last 24 fully closed hourly bars, ending no later than sweep start.
     hourly['turnover24']=hourly.turnover.rolling(24,min_periods=24).sum()
     htimes=hourly.index
     entries=[];pending=None
-    counts={'symbol':symbol,'hours':hours,'eligible_bars':0,'accum_pass':0,'sweeps':0,'confirmations':0,'entries':0}
+    counts={'symbol':symbol,'hours':hours,'mode':mode,'eligible_bars':0,'accum_pass':0,'sweeps':0,'bb_rejections':0,'confirmations':0,'entries':0}
     cutoff=pd.Timestamp.now(tz='UTC')-pd.Timedelta(days=DAYS)
     last_exit=None
     for start,bar in bars.iterrows():
@@ -147,7 +172,7 @@ def simulate(symbol,pair,df5,hours):
                             idx=df5.index.searchsorted(end)
                             outcome=settle(idx,side,entry,stop,df5)
                             if outcome:
-                                entries.append({'symbol':symbol,'pair':pair,'hours':hours,'direction':side,'entry_time':end.isoformat(),'entry':entry,'stop':stop,'target4':entry+(1 if side=='LONG' else -1)*4*risk,'poc':pending['poc'],**outcome})
+                                entries.append({'symbol':symbol,'pair':pair,'hours':hours,'mode':mode,'direction':side,'entry_time':end.isoformat(),'entry':entry,'stop':stop,'target4':entry+(1 if side=='LONG' else -1)*4*risk,'poc':pending['poc'],**outcome})
                                 counts['entries']+=1
                                 last_exit=pd.Timestamp(outcome['exit_time'])
             pending=None
@@ -160,23 +185,30 @@ def simulate(symbol,pair,df5,hours):
         elif bar.high>hi and lo<=bar.close<hi:side='SHORT'
         if side:
             counts['sweeps']+=1
+            bb_pass = bb_rejection_in_sweep(df5, start, side)
+            if bb_pass:
+                counts['bb_rejections']+=1
+            if mode == 'SMC_BB_REJECTION' and not bb_pass:
+                continue
             pending={'start':start,'side':side,'sweep_high':float(bar.high),'sweep_low':float(bar.low),'stop':float(bar.low if side=='LONG' else bar.high),'poc':poc(region)}
     return entries,counts
 
 def summary(trades,diagnostics):
     results=[]
     for h in HOURS:
-        group=trades[trades.hours==h] if not trades.empty else pd.DataFrame()
-        vals=group.net_return_pct.to_numpy() if len(group) else np.array([])
-        wins=int((vals>0).sum())
-        # Non-compounded cumulative per-trade percent; not portfolio return.
-        curve=np.r_[0,np.cumsum(vals)]
-        maxdd=float(np.max(np.maximum.accumulate(curve)-curve))
-        results.append({'accum_hours':h,'closed_trades':len(vals),'wins':wins,'losses':int((vals<=0).sum()),'win_rate_pct':round(100*wins/len(vals),2) if len(vals) else 0,'sum_net_trade_return_pct':round(float(vals.sum()),3),'avg_net_trade_return_pct':round(float(vals.mean()),3) if len(vals) else 0,'max_drawdown_pct_points':round(maxdd,3),'sweeps':sum(x['sweeps'] for x in diagnostics if x['hours']==h),'confirmations':sum(x['confirmations'] for x in diagnostics if x['hours']==h)})
+        for mode in MODES:
+            group=trades[(trades.hours==h)&(trades['mode']==mode)] if not trades.empty else pd.DataFrame()
+            vals=group.net_return_pct.to_numpy() if len(group) else np.array([])
+            wins=int((vals>0).sum())
+            # Non-compounded cumulative trade-percent units; NOT portfolio drawdown.
+            curve=np.r_[0,np.cumsum(vals)]
+            maxdd=float(np.max(np.maximum.accumulate(curve)-curve))
+            relevant=[x for x in diagnostics if x['hours']==h and x['mode']==mode]
+            results.append({'accum_hours':h,'mode':mode,'closed_trades':len(vals),'wins':wins,'losses':int((vals<=0).sum()),'win_rate_pct':round(100*wins/len(vals),2) if len(vals) else 0,'sum_net_trade_return_pct':round(float(vals.sum()),3),'avg_net_trade_return_pct':round(float(vals.mean()),4) if len(vals) else 0,'max_drawdown_pct_points':round(maxdd,3),'sweeps':sum(x['sweeps'] for x in relevant),'bb_rejections':sum(x['bb_rejections'] for x in relevant),'confirmations':sum(x['confirmations'] for x in relevant)})
     return pd.DataFrame(results)
 
 def main():
-    LOG.info('START historical comparison days=%d hours=%s; NO LIVE TRADING',DAYS,HOURS)
+    LOG.info('START SMC vs SMC+BB(20,2) days=%d hours=%s; NO LIVE TRADING',DAYS,HOURS)
     selected=universe();LOG.info('Selected %d coins',len(selected))
     all_trades=[];diags=[];errors=[]
     def worker(item):
@@ -190,22 +222,24 @@ def main():
             symbol,pair=future_map[f]
             try:
                 _,_,df=f.result()
+                df=add_bollinger(df)
                 for h in HOURS:
-                    trades,diag=simulate(symbol,pair,df,h)
-                    all_trades.extend(trades);diags.append(diag)
+                    for mode in MODES:
+                        trades,diag=simulate(symbol,pair,df,h,mode)
+                        all_trades.extend(trades);diags.append(diag)
                 LOG.info('DONE %s candles=%d',symbol,len(df))
             except Exception as exc:
                 errors.append({'symbol':symbol,'error':str(exc)})
                 LOG.error('FAILED %s %s',symbol,exc)
     if not diags:raise RuntimeError('No usable data. Backtest incomplete.')
     trades=pd.DataFrame(all_trades)
-    if not trades.empty:trades=trades.sort_values(['hours','exit_time']).reset_index(drop=True)
+    if not trades.empty:trades=trades.sort_values(['hours','mode','exit_time']).reset_index(drop=True)
     trades.to_csv(OUT/'trades.csv',index=False)
     pd.DataFrame(diags).to_csv(OUT/'diagnostics.csv',index=False)
     pd.DataFrame(errors).to_csv(OUT/'errors.csv',index=False)
     result=summary(trades,diags)
     result.to_csv(OUT/'comparison.csv',index=False)
-    print('\n=== 1H / 2H / 4H / 6H ACCUMULATION COMPARISON ===')
+    print('\n=== 4H / 6H: SMC ONLY vs SMC + 5m BB REJECTION ===')
     print(result.to_string(index=False))
     print(f'\nCoins with usable data: {len(set(x["symbol"] for x in diags))}/{len(selected)}. Failed: {len(errors)}')
     print('Results saved in:',OUT.resolve())
