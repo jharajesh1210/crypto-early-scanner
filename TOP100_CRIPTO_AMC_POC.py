@@ -22,7 +22,7 @@ SIGNALS = Path(NAME + '_signals.csv')
 UNIVERSE = Path(NAME + '_universe.csv')
 
 MIN_TURNOVER = 500_000
-ACCUM_HOURS = 20
+ACCUM_HOURS = 4
 MAX_RANGE_PCT = 2.0
 RR_VALUES = (4,)  # New positions use 4R with 2R/3R trailing stops
 FEE_SIDE = 0.0005
