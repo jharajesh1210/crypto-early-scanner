@@ -1,0 +1,36 @@
+name: TOP100 AMC Accumulation Backtest Comparison
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: 'Historical days to test'
+        required: true
+        default: '30'
+      max_coins:
+        description: 'Maximum Top100 matched futures coins'
+        required: true
+        default: '60'
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install numpy pandas requests
+      - name: Run 1 2 4 6 hour backtest
+        env:
+          BACKTEST_DAYS: ${{ inputs.days }}
+          BACKTEST_MAX_COINS: ${{ inputs.max_coins }}
+        run: python TOP100_AMC_BACKTEST_COMPARE.py
+      - name: Downloadable CSV results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TOP100-AMC-Backtest-Comparison
+          path: TOP100_AMC_BACKTEST_RESULTS/
+          if-no-files-found: warn
