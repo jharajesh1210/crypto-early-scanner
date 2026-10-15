@@ -1,6 +1,12 @@
 {
-  "last_bar": 1792038000000,
-  "setup": null,
+  "last_bar": 1792039800000,
+  "setup": {
+    "side": "SHORT",
+    "stage": "SWEEP",
+    "sweep_time": 1792039800000,
+    "extreme": 81720.9,
+    "break_level": 80689.3
+  },
   "positions": [],
   "closed": 4,
   "wins": 4,
