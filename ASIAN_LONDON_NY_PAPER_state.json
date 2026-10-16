@@ -1,5 +1,10 @@
 {
   "positions": [],
   "entered_days": {},
-  "last_closed_bar": {}
+  "last_closed_bar": {
+    "BTCUSDT": 1792168500000,
+    "ETHUSDT": 1792168500000,
+    "SOLUSDT": 1792168500000,
+    "BNBUSDT": 1792168500000
+  }
 }
