@@ -1,0 +1,59 @@
+name: All 4 Scanners Profit Loss Report
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: all-four-scanners-profit-loss-report
+  cancel-in-progress: false
+
+jobs:
+  build_report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Generate consolidated report
+        run: python ALL_4_SCANNERS_REPORT.py
+
+      - name: Commit updated consolidated CSV
+        shell: bash
+        run: |
+          set -e
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add ALL_4_SCANNERS_PROFIT_LOSS.csv
+          if git diff --cached --quiet; then
+            echo 'No report changes'
+            exit 0
+          fi
+          git commit -m 'Update all four scanners paper P&L report'
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            if ! git rebase origin/main; then
+              git rebase --abort || true
+              echo 'Concurrent update conflict; no force push performed'
+              exit 1
+            fi
+            if git push origin HEAD:main; then
+              echo 'Combined report saved'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'Unable to save report after retries'
+          exit 1
