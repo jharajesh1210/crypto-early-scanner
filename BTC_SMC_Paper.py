@@ -38,7 +38,9 @@ SWING_LENGTH = 3
 SETUP_EXPIRY = 18
 FVG_EXPIRY = 12
 
-RR_VALUES = [2, 3]
+RR_VALUES = [2, 3, 4]  # Milestones, NOT separate positions
+MARGIN_USDT = 100.0
+LEVERAGE = 30
 
 # Paper trading cost assumptions
 ROUND_TRIP_FEE = 0.001
@@ -361,7 +363,10 @@ def save_trade(trade):
         "exit",
         "reason",
         "gross_pct",
-        "net_pct"
+        "net_pct",
+        "margin_usdt",
+        "trade_mode",
+        "max_rr_reached"
     ]
 
     row = {
@@ -382,121 +387,95 @@ def save_trade(trade):
 # =========================
 
 def check_exits(state, bar):
+    """One full-size position: 2R -> SL at 2R; 3R -> SL at 3R; exit 4R.
 
+    Existing legacy RR=2/3 positions are allowed to finish unchanged.
+    Intrabar OHLC ordering is unknown: a pre-existing stop takes priority.
+    New trailing stops activate from the NEXT completed 5m candle, never
+    retroactively within the candle that first reached the milestone.
+    """
     remaining = []
-
     for position in state["positions"]:
-
         if bar["time"] <= position["entry_time"]:
             remaining.append(position)
             continue
 
         is_long = position["side"] == "LONG"
+        direction = 1 if is_long else -1
+        high, low = float(bar["high"]), float(bar["low"])
+        entry, stop = float(position["entry"]), float(position["stop"])
+        target = float(position["target"])
+        stop_hit = low <= stop if is_long else high >= stop
+        target_hit = high >= target if is_long else low <= target
+        exit_price, reason = None, None
 
-        if is_long:
+        if stop_hit:
+            # Conservative: stop wins when old stop and target both touched.
+            exit_price = stop
+            reason = "TRAIL STOP" if position.get("trade_mode") == "SINGLE_TRAIL_4R" and position.get("max_rr_reached", 0) >= 2 else "STOP LOSS"
+        elif target_hit:
+            exit_price = target
+            reason = "FINAL TARGET 4R" if position.get("trade_mode") == "SINGLE_TRAIL_4R" else "TARGET HIT"
+        elif position.get("trade_mode") == "SINGLE_TRAIL_4R":
+            # Milestones move the full position's stop, never book partial P/L.
+            risk = float(position["initial_risk"])
+            reached = int(position.get("max_rr_reached", 0))
+            for rr in (3, 2):
+                milestone = entry + direction * rr * risk
+                touched = high >= milestone if is_long else low <= milestone
+                if touched and rr > reached:
+                    position["stop"] = milestone
+                    position["max_rr_reached"] = rr
+                    alert = (f"BTC SMC PAPER - TRAILING STOP UPDATED\n"
+                             f"Side: {position['side']}\n"
+                             f"Reached: 1:{rr}\n"
+                             f"New Stop Loss: {milestone:.2f}\n"
+                             f"Position Open: 100%\n"
+                             f"Final Target 1:4: {target:.2f}\n"
+                             "PAPER TRADING ONLY")
+                    print(alert)
+                    send_telegram(alert)
+                    break
 
-            stop_hit = (
-                bar["low"] <= position["stop"]
-            )
-
-            target_hit = (
-                bar["high"] >= position["target"]
-            )
-
-        else:
-
-            stop_hit = (
-                bar["high"] >= position["stop"]
-            )
-
-            target_hit = (
-                bar["low"] <= position["target"]
-            )
-
-        if not stop_hit and not target_hit:
+        if exit_price is None:
             remaining.append(position)
             continue
 
-        # Conservative rule:
-        # If SL and TP both touched, assume SL first.
-
-        if stop_hit:
-            exit_price = position["stop"]
-            reason = "STOP LOSS"
-
-        else:
-            exit_price = position["target"]
-            reason = "TARGET HIT"
-
-        direction = 1 if is_long else -1
-
-        gross_pct = (
-            (
-                exit_price / position["entry"]
-            ) - 1
-        ) * 100 * direction
-
-        costs_pct = (
-            ROUND_TRIP_FEE
-            + 2 * SLIPPAGE_PER_SIDE
-        ) * 100
-
+        gross_pct = (exit_price / entry - 1) * 100 * direction
+        costs_pct = (ROUND_TRIP_FEE + 2 * SLIPPAGE_PER_SIDE) * 100
         net_pct = gross_pct - costs_pct
-
         state["closed"] += 1
-
         if net_pct > 0:
             state["wins"] += 1
         else:
             state["losses"] += 1
-
-        state["net_pct"] = round(
-            state["net_pct"] + net_pct,
-            6
-        )
-
-        timestamp = datetime.fromtimestamp(
-            bar["time"] / 1000,
-            timezone.utc
-        ).isoformat()
-
-        trade = {
-            **position,
-            "time_utc": timestamp,
-            "exit": exit_price,
-            "reason": reason,
-            "gross_pct": round(gross_pct, 4),
-            "net_pct": round(net_pct, 4)
-        }
-
+        state["net_pct"] = round(state["net_pct"] + net_pct, 6)
+        timestamp = datetime.fromtimestamp(bar["time"] / 1000, timezone.utc).isoformat()
+        trade = {**position, "time_utc": timestamp, "exit": exit_price,
+                 "reason": reason, "gross_pct": round(gross_pct, 4),
+                 "net_pct": round(net_pct, 4),
+                 "margin_usdt": position.get("margin_usdt", MARGIN_USDT)}
         save_trade(trade)
-
         closed = state["closed"]
-
-        win_rate = (
-            state["wins"] / closed * 100
-        )
-
+        win_rate = state["wins"] / closed * 100
         message = (
             "BTC SMC PAPER - TRADE CLOSED\n"
             f"Side: {position['side']}\n"
-            f"RR: 1:{position['rr']}\n"
+            f"Mode: {position.get('trade_mode', 'LEGACY RR LEG')}\n"
             f"Result: {reason}\n"
-            f"Entry: {position['entry']:.2f}\n"
+            f"Entry: {entry:.2f}\n"
             f"Exit: {exit_price:.2f}\n"
+            f"Margin: ${float(position.get('margin_usdt', MARGIN_USDT)):.2f}\n"
             f"Net Return: {net_pct:+.3f}%\n\n"
-            f"Closed Legs: {closed}\n"
+            f"Closed Records: {closed}\n"
             f"Wins: {state['wins']}\n"
             f"Losses: {state['losses']}\n"
             f"Win Rate: {win_rate:.2f}%\n"
-            f"Sum Net Returns: "
-            f"{state['net_pct']:+.3f}%\n"
+            f"Sum Net Returns: {state['net_pct']:+.3f}%\n"
             "PAPER TRADING ONLY"
         )
-
         print(message)
         send_telegram(message)
-
     state["positions"] = remaining
 
 
@@ -719,40 +698,26 @@ def process_smc(df, i, state, bias):
                         and not state["positions"]
                     ):
 
-                        for rr in RR_VALUES:
-
-                            target = (
-                                entry + rr * risk
-                                if is_long
-                                else entry - rr * risk
-                            )
-
-                            position = {
-                                "side": setup["side"],
-                                "rr": rr,
-                                "entry": entry,
-                                "stop": stop,
-                                "target": target,
-                                "entry_time": int(
-                                    bar["time"]
-                                )
-                            }
-
-                            state["positions"].append(
-                                position
-                            )
-
-                        target2 = (
-                            entry + 2 * risk
-                            if is_long
-                            else entry - 2 * risk
-                        )
-
-                        target3 = (
-                            entry + 3 * risk
-                            if is_long
-                            else entry - 3 * risk
-                        )
+                        # One $100 margin position; NO partial exits.
+                        # 2R -> move SL to 2R; 3R -> move SL to 3R;
+                        # 4R -> close the entire position.
+                        position = {
+                            "side": setup["side"],
+                            "rr": 4,
+                            "entry": entry,
+                            "stop": stop,
+                            "initial_stop": stop,
+                            "initial_risk": risk,
+                            "target": entry + (4 * risk if is_long else -4 * risk),
+                            "entry_time": int(bar["time"]),
+                            "trade_mode": "SINGLE_TRAIL_4R",
+                            "max_rr_reached": 0,
+                            "margin_usdt": MARGIN_USDT
+                        }
+                        state["positions"].append(position)
+                        target2 = entry + (2 * risk if is_long else -2 * risk)
+                        target3 = entry + (3 * risk if is_long else -3 * risk)
+                        target4 = position["target"]
 
                         timestamp = (
                             datetime.fromtimestamp(
@@ -772,7 +737,10 @@ def process_smc(df, i, state, bias):
                             f"Entry: {entry:.2f}\n"
                             f"Stop Loss: {stop:.2f}\n"
                             f"Target RR2: {target2:.2f}\n"
-                            f"Target RR3: {target3:.2f}\n"
+                            f"Target RR3: {target3:.2f} (move SL to RR3)\n"
+                            f"Target RR4: {target4:.2f} (full exit)\n"
+                            "At RR2: move SL to RR2; no partial exit\n"
+                            "Margin: $100 total, Leverage: 30x\n"
                             "PAPER TRADING ONLY"
                         )
 
@@ -809,7 +777,7 @@ def process_smc(df, i, state, bias):
 def main():
 
     print("=" * 55)
-    print("BTC SMC PAPER - V23")
+    print("BTC SMC PAPER - V23 SINGLE POSITION TRAIL 2R/3R/4R")
     print("COINDCX BTC USDT FUTURES")
     print("5M ENTRY + 1H MARKET STRUCTURE")
     print("PAPER TRADING ONLY")
