@@ -1,4 +1,4 @@
-"""Combine five independent paper-trade CSV histories into ONE cumulative P/L report.
+"""Combine six independent paper-trade CSV histories into ONE cumulative P/L report.
 Run from the GitHub repository root. Python standard library only.
 Assumption: $100 margin and 30x leverage PER CLOSED TRADE LEG.
 """
@@ -18,6 +18,7 @@ SCANNERS = [
     ('TOP100 CRIPTO AMC POC Paper Scanner', 'TOP100_CRIPTO_AMC_POC_trades.csv', 'net_return_pct_per_leg'),
     ('NEW TOP100 AMD POC 1H Paper', 'TOP100_AMD_POC_1H_PAPER_trades.csv', 'net_return_pct_per_leg'),
     ('ASIAN LONDON NY PAPER', 'ASIAN_LONDON_NY_PAPER_trades.csv', 'net_return_pct_per_leg'),
+    ('HYBRID SMC AMC SESSION Paper', 'HYBRID_SMC_AMC_SESSION_PAPER_trades.csv', 'net_return_pct_per_leg'),
 ]
 
 FIELDS = [
@@ -88,7 +89,7 @@ def main():
     complete = len(totals) == len(SCANNERS)
     rows.append(dict(
         Scanner='TOTAL (available histories)',
-        Status='ALL 5 AVAILABLE' if complete else f'PARTIAL: {len(totals)}/5 available',
+        Status=f'ALL {len(SCANNERS)} AVAILABLE' if complete else f'PARTIAL: {len(totals)}/{len(SCANNERS)} available',
         Closed_Legs=count, Winning_Legs=wins, Losing_Legs=losses,
         **{'Win_Rate_%': str((Decimal(wins) * 100 / count).quantize(Decimal('0.01'))) if count else ''},
         Total_Profit_USDT=money(profit) if count else '',
