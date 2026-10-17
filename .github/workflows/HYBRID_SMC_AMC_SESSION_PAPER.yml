@@ -1,0 +1,70 @@
+name: HYBRID SMC AMC SESSION Paper Scanner
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/5 * * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hybrid-smc-amc-session-paper
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install packages
+        run: python -m pip install requests
+
+      - name: Run HYBRID paper scanner
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+        run: python HYBRID_SMC_AMC_SESSION_PAPER.py
+
+      - name: Save independent paper state and CSVs
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for file in \
+            HYBRID_SMC_AMC_SESSION_PAPER_state.json \
+            HYBRID_SMC_AMC_SESSION_PAPER_trades.csv \
+            HYBRID_SMC_AMC_SESSION_PAPER_signals.csv; do
+            if [ -f "$file" ]; then
+              git add "$file"
+            fi
+          done
+          if git diff --cached --quiet; then
+            echo 'No new paper trading changes'
+            exit 0
+          fi
+          git commit -m 'Update HYBRID paper trading records'
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            if git rebase origin/main && git push origin HEAD:main; then
+              echo 'Paper trading records saved'
+              exit 0
+            fi
+            git rebase --abort 2>/dev/null || true
+            sleep $((attempt * 2))
+          done
+          echo 'Failed to push paper trading records' >&2
+          exit 1
