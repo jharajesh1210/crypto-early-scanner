@@ -1,6 +1,13 @@
 {
-  "last_bar": 1792270800000,
-  "setup": null,
+  "last_bar": 1792272000000,
+  "setup": {
+    "side": "SHORT",
+    "stage": "CHOCH",
+    "sweep_time": 1792271100000,
+    "extreme": 81686.4,
+    "break_level": 81565.4,
+    "choch_time": 1792272000000
+  },
   "positions": [],
   "closed": 6,
   "wins": 4,
