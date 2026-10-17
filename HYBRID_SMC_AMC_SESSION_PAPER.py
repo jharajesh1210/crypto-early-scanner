@@ -3,6 +3,7 @@ CoinDCX USDT futures only. New independent paper state; no live orders.
 No backtest or profitability claims.
 """
 import csv
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 import logging
 import os
@@ -18,7 +19,6 @@ SIGNALS = Path(PREFIX + '_signals.csv')
 TOP_N = 20  # Top 20 active USDT futures by approx. 24h USDT turnover
 API = 'https://public.coindcx.com/market_data/candlesticks'
 ACTIVE_API = 'https://api.coindcx.com/exchange/v1/derivatives/futures/data/active_instruments'
-PRICES_API = 'https://public.coindcx.com/market_data/v3/current_prices/futures/rt'
 MARGIN = 100.0
 LEVERAGE = 30.0
 FEE_RATE = 0.0005  # illustrative taker fee each side, adjust to account
@@ -76,57 +76,47 @@ def notify(message):
         LOG.warning('Telegram failed: %s', exc)
 
 
-def top20_symbols():
-    """Select active CoinDCX USDT futures by approximate 24h quote turnover.
+# User-selected fixed list. Stablecoins and some tokens may not have CoinDCX futures.
+REQUESTED_COINS = (
+    'BTC', 'ETH', 'USDT', 'BNB', 'XRP', 'USDC', 'SOL', 'TRX', 'HYPE', 'ZEC',
+    'DOGE', 'XMR', 'LINK', 'LEO', 'ADA', 'NEAR', 'XLM', 'BCH', 'USDE', 'LTC'
+)
 
-    CoinDCX's futures price snapshot reports base volume (v) and last price (ls).
-    Their product is an approximate USDT turnover, not an audited volume rank.
-    Fail closed if live rankings cannot be retrieved.
-    """
-    active_response = requests.get(
-        ACTIVE_API, params={'margin_currency_short_name[]': 'USDT'}, timeout=30
-    )
-    active_response.raise_for_status()
-    active = active_response.json()
+
+def top20_symbols():
+    """Scan only requested coins that have an active CoinDCX USDT futures contract."""
+    response = requests.get(ACTIVE_API, timeout=30)
+    response.raise_for_status()
+    active = response.json()
     if isinstance(active, dict):
         active = active.get('data', active.get('instruments', []))
     if not isinstance(active, list):
         raise ValueError('CoinDCX active futures list unavailable')
-    active_pairs = {
-        pair for pair in active
-        if isinstance(pair, str) and pair.startswith('B-') and pair.endswith('_USDT')
-    }
-    if len(active_pairs) < TOP_N:
-        raise ValueError(f'Only {len(active_pairs)} active USDT futures returned')
-
-    prices_response = requests.get(PRICES_API, timeout=30)
-    prices_response.raise_for_status()
-    prices = prices_response.json()
-    # The documented API provides a dict keyed by instrument pair.
-    if isinstance(prices, dict) and isinstance(prices.get('data'), dict):
-        prices = prices['data']
-    if not isinstance(prices, dict):
-        raise ValueError('CoinDCX futures price snapshot unavailable')
-
-    ranked = []
-    for pair in active_pairs:
-        tick = prices.get(pair)
-        if not isinstance(tick, dict):
+    pairs = set()
+    for item in active:
+        if isinstance(item, str):
+            pair = item.upper()
+        elif isinstance(item, dict):
+            pair = str(item.get('pair') or item.get('instrument') or
+                       item.get('symbol') or item.get('coindcx_name') or '').upper()
+        else:
             continue
-        try:
-            volume = float(tick['v'])
-            last = float(tick['ls'])
-        except (KeyError, TypeError, ValueError):
-            continue
-        if not (0 < volume < float('inf') and 0 < last < float('inf')):
-            continue
-        ranked.append((pair, volume * last))
-    ranked.sort(key=lambda item: (-item[1], item[0]))
-    if len(ranked) < TOP_N:
-        raise ValueError(f'Only {len(ranked)} usable CoinDCX futures volume quotes')
-    chosen = [pair[2:-5] + 'USDT' for pair, _ in ranked[:TOP_N]]
-    LOG.info('TOP20 by approximate 24h USDT turnover: %s', ', '.join(chosen))
-    return chosen
+        if pair.endswith('_USDT'):
+            pairs.add(pair if pair.startswith('B-') else 'B-' + pair)
+    selected, unavailable = [], []
+    for coin in REQUESTED_COINS:
+        pair = f'B-{coin}_USDT'
+        if pair in pairs:
+            selected.append(f'{coin}USDT')
+        else:
+            unavailable.append(coin)
+    LOG.info('USER SELECTED COINS: %s', ', '.join(REQUESTED_COINS))
+    LOG.info('AVAILABLE COINDCX FUTURES (%d): %s', len(selected), ', '.join(selected) or 'NONE')
+    if unavailable:
+        LOG.warning('SKIPPED (no active USDT futures contract): %s', ', '.join(unavailable))
+    if not selected:
+        raise ValueError('None of the 20 requested coins have active CoinDCX USDT futures contracts')
+    return selected
 
 
 def candles(symbol, resolution='5', days=4):
@@ -403,7 +393,7 @@ def main():
         except (requests.RequestException, ValueError, KeyError, TypeError) as exc:
             LOG.error('%s: %s', symbol, exc)
     save_state(state)
-    LOG.info('COMPLETE selected_top20=%s scanned=%s open_legs=%s', len(ranked_symbols), len(symbols), len(state['positions']))
+    LOG.info('COMPLETE selected_requested=%s scanned=%s open_legs=%s', len(ranked_symbols), len(symbols), len(state['positions']))
 
 
 if __name__ == '__main__':
