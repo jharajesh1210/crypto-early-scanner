@@ -15,8 +15,10 @@ PREFIX = 'HYBRID_SMC_AMC_SESSION_PAPER'
 STATE = Path(PREFIX + '_state.json')
 TRADES = Path(PREFIX + '_trades.csv')
 SIGNALS = Path(PREFIX + '_signals.csv')
-SYMBOLS = ('BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT')
+TOP_N = 20  # Top 20 active USDT futures by approx. 24h USDT turnover
 API = 'https://public.coindcx.com/market_data/candlesticks'
+ACTIVE_API = 'https://api.coindcx.com/exchange/v1/derivatives/futures/data/active_instruments'
+PRICES_API = 'https://public.coindcx.com/market_data/v3/current_prices/futures/rt'
 MARGIN = 100.0
 LEVERAGE = 30.0
 FEE_RATE = 0.0005  # illustrative taker fee each side, adjust to account
@@ -72,6 +74,59 @@ def notify(message):
         r.raise_for_status()
     except requests.RequestException as exc:
         LOG.warning('Telegram failed: %s', exc)
+
+
+def top20_symbols():
+    """Select active CoinDCX USDT futures by approximate 24h quote turnover.
+
+    CoinDCX's futures price snapshot reports base volume (v) and last price (ls).
+    Their product is an approximate USDT turnover, not an audited volume rank.
+    Fail closed if live rankings cannot be retrieved.
+    """
+    active_response = requests.get(
+        ACTIVE_API, params={'margin_currency_short_name[]': 'USDT'}, timeout=30
+    )
+    active_response.raise_for_status()
+    active = active_response.json()
+    if isinstance(active, dict):
+        active = active.get('data', active.get('instruments', []))
+    if not isinstance(active, list):
+        raise ValueError('CoinDCX active futures list unavailable')
+    active_pairs = {
+        pair for pair in active
+        if isinstance(pair, str) and pair.startswith('B-') and pair.endswith('_USDT')
+    }
+    if len(active_pairs) < TOP_N:
+        raise ValueError(f'Only {len(active_pairs)} active USDT futures returned')
+
+    prices_response = requests.get(PRICES_API, timeout=30)
+    prices_response.raise_for_status()
+    prices = prices_response.json()
+    # The documented API provides a dict keyed by instrument pair.
+    if isinstance(prices, dict) and isinstance(prices.get('data'), dict):
+        prices = prices['data']
+    if not isinstance(prices, dict):
+        raise ValueError('CoinDCX futures price snapshot unavailable')
+
+    ranked = []
+    for pair in active_pairs:
+        tick = prices.get(pair)
+        if not isinstance(tick, dict):
+            continue
+        try:
+            volume = float(tick['v'])
+            last = float(tick['ls'])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if not (0 < volume < float('inf') and 0 < last < float('inf')):
+            continue
+        ranked.append((pair, volume * last))
+    ranked.sort(key=lambda item: (-item[1], item[0]))
+    if len(ranked) < TOP_N:
+        raise ValueError(f'Only {len(ranked)} usable CoinDCX futures volume quotes')
+    chosen = [pair[2:-5] + 'USDT' for pair, _ in ranked[:TOP_N]]
+    LOG.info('TOP20 by approximate 24h USDT turnover: %s', ', '.join(chosen))
+    return chosen
 
 
 def candles(symbol, resolution='5', days=4):
@@ -284,7 +339,19 @@ def settle(state, symbol, bars):
 def main():
     logging.basicConfig(level=logging.INFO, format='%(levelname)s %(message)s')
     state = load_state()
-    for symbol in SYMBOLS:
+    try:
+        ranked_symbols = top20_symbols()
+    except (requests.RequestException, ValueError) as exc:
+        LOG.error('TOP20 selection failed; no new entries: %s', exc)
+        # Still process existing positions to avoid losing exit tracking.
+        ranked_symbols = []
+
+    # Continue monitoring existing positions even if a coin drops out of Top 20.
+    held_symbols = {p['symbol'] for p in state['positions']}
+    symbols = list(dict.fromkeys(ranked_symbols + sorted(held_symbols)))
+    if not symbols:
+        raise RuntimeError('No symbols available; scanner stopped safely')
+    for symbol in symbols:
         try:
             bars = candles(symbol, '5', 4)
             hourly = candles(symbol, '60', 18)
@@ -293,6 +360,10 @@ def main():
             # Settle first; old entries remain safe across missed workflow runs.
             settle(state, symbol, bars)
             day = str(utc(bars[-1]['t']).date())
+            if symbol not in ranked_symbols:
+                state['last_closed_bar'][symbol] = bars[-1]['t']
+                save_state(state)
+                continue
             if state['entered_days'].get(symbol) == day:
                 state['last_closed_bar'][symbol] = bars[-1]['t']
                 save_state(state)
@@ -332,7 +403,7 @@ def main():
         except (requests.RequestException, ValueError, KeyError, TypeError) as exc:
             LOG.error('%s: %s', symbol, exc)
     save_state(state)
-    LOG.info('COMPLETE open_legs=%s', len(state['positions']))
+    LOG.info('COMPLETE selected_top20=%s scanned=%s open_legs=%s', len(ranked_symbols), len(symbols), len(state['positions']))
 
 
 if __name__ == '__main__':
