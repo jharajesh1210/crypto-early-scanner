@@ -1,5 +1,5 @@
 """Top-100 CoinGecko market-cap / CoinDCX USDT futures SMC paper scanner.
-1h HH/HL or LH/LL bias; 5m sweep -> CHOCH -> FVG -> retest/rejection.
+4h AND 1h aligned HH/HL or LH/LL bias; 5m sweep -> CHOCH -> FVG -> retest/rejection.
 One paper position per pair; stop locks at 2R, 3R; final take profit 4R.
 No exchange orders. Run every 5 minutes via GitHub Actions.
 """
@@ -226,11 +226,14 @@ def detect_sweep(bars, i, side):
     return None
 
 
-def process_smc(state, pair, bars, hourly, i, stats):
+def process_smc(state, pair, bars, hourly, four_hourly, i, stats):
     t = bars.index[i]
     bar = bars.iloc[i]
     end = t + pd.Timedelta(minutes=5)
-    bias = bias_at(hourly, end)
+    bias_1h = bias_at(hourly, end)
+    bias_4h = bias_at(four_hourly, end)
+    # Allow NEW entries only when both closed-timeframe trends agree.
+    bias = bias_1h if bias_1h == bias_4h else 'NEUTRAL'
     coin = state['coins'][pair]
     setup = coin.get('setup')
     if setup:
@@ -277,7 +280,7 @@ def process_smc(state, pair, bars, hourly, i, stats):
                                    'stage': 0, 'last_checked': t.isoformat()}
                             state['positions'].append(pos)
                             stats['entries'] += 1
-                            telegram(f'{NAME} PAPER ENTRY\n{pair} {pos["side"]}\n1H Bias: {bias}\nEntry: {entry:.8g}\nSL: {stop:.8g}\n2R: {pos["level2"]:.8g}\n3R: {pos["level3"]:.8g}\nFINAL 4R: {pos["target4"]:.8g}\nPAPER ONLY')
+                            telegram(f'{NAME} PAPER ENTRY\n{pair} {pos["side"]}\n1H Bias: {bias_1h}\n4H Bias: {bias_4h}\nEntry: {entry:.8g}\nSL: {stop:.8g}\n2R: {pos["level2"]:.8g}\n3R: {pos["level3"]:.8g}\nFINAL 4R: {pos["target4"]:.8g}\nPAPER ONLY')
                             LOG.info('PAPER ENTRY %s %s', pair, pos['side'])
                         else:
                             stats['late_signals'] += 1
@@ -292,7 +295,7 @@ def process_smc(state, pair, bars, hourly, i, stats):
 
 
 def scan_pair(pair):
-    return pair, candles(pair, 5, 3), candles(pair, 60, 18)
+    return pair, candles(pair, 5, 3), candles(pair, 60, 18), candles(pair, 240, 45)
 
 
 def main():
@@ -308,8 +311,8 @@ def main():
         for future in as_completed(futures):
             pair = futures[future]
             try:
-                _, bars, hourly = future.result()
-                if len(bars) < 100 or len(hourly) < 30:
+                _, bars, hourly, four_hourly = future.result()
+                if len(bars) < 100 or len(hourly) < 30 or len(four_hourly) < 30:
                     stats['data_failures'] += 1
                     continue
                 stats['scanned'] += 1
@@ -337,7 +340,7 @@ def main():
                     if t != last_time + pd.Timedelta(minutes=5):
                         coin['setup'] = None
                         stats['gaps'] += 1
-                    process_smc(state, pair, bars.iloc[:i+1], hourly, i, stats)
+                    process_smc(state, pair, bars.iloc[:i+1], hourly, four_hourly, i, stats)
                     coin['last_bar'] = t.isoformat()
                     last_time = t
                     save_state(state)
