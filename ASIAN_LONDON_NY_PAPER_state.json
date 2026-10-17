@@ -10,7 +10,7 @@
       "target": 2352.07,
       "risk": 21.539999999999964,
       "entry_time_utc": "2026-10-16T16:40+00:00",
-      "last_checked_t": 1792233000000
+      "last_checked_t": 1792234500000
     },
     {
       "symbol": "SOLUSDT",
@@ -22,7 +22,7 @@
       "target": 99.97000000000003,
       "risk": 2.2299999999999898,
       "entry_time_utc": "2026-10-16T16:40+00:00",
-      "last_checked_t": 1792233000000
+      "last_checked_t": 1792234500000
     },
     {
       "symbol": "SOLUSDT",
@@ -34,7 +34,7 @@
       "target": 97.74000000000004,
       "risk": 2.2299999999999898,
       "entry_time_utc": "2026-10-16T16:40+00:00",
-      "last_checked_t": 1792233000000
+      "last_checked_t": 1792234500000
     },
     {
       "symbol": "SOLUSDT",
@@ -46,7 +46,7 @@
       "target": 95.51000000000005,
       "risk": 2.2299999999999898,
       "entry_time_utc": "2026-10-16T16:40+00:00",
-      "last_checked_t": 1792233000000
+      "last_checked_t": 1792234500000
     },
     {
       "symbol": "BNBUSDT",
@@ -58,7 +58,7 @@
       "target": 711.5300000000002,
       "risk": 7.089999999999918,
       "entry_time_utc": "2026-10-16T16:40+00:00",
-      "last_checked_t": 1792233000000
+      "last_checked_t": 1792234500000
     },
     {
       "symbol": "BNBUSDT",
@@ -70,7 +70,7 @@
       "target": 704.4400000000003,
       "risk": 7.089999999999918,
       "entry_time_utc": "2026-10-16T16:40+00:00",
-      "last_checked_t": 1792233000000
+      "last_checked_t": 1792234500000
     },
     {
       "symbol": "BNBUSDT",
@@ -82,7 +82,7 @@
       "target": 697.3500000000004,
       "risk": 7.089999999999918,
       "entry_time_utc": "2026-10-16T16:40+00:00",
-      "last_checked_t": 1792233000000
+      "last_checked_t": 1792234500000
     }
   ],
   "entered_days": {
@@ -91,9 +91,9 @@
     "BNBUSDT": "2026-10-16"
   },
   "last_closed_bar": {
-    "BTCUSDT": 1792233000000,
-    "ETHUSDT": 1792233000000,
-    "SOLUSDT": 1792233000000,
-    "BNBUSDT": 1792233000000
+    "BTCUSDT": 1792234500000,
+    "ETHUSDT": 1792234500000,
+    "SOLUSDT": 1792234500000,
+    "BNBUSDT": 1792234500000
   }
 }
