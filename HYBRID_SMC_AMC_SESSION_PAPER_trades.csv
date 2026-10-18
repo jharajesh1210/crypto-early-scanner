@@ -1,0 +1,2 @@
+trade_id,symbol,strategy,direction,entry_time_utc,exit_time_utc,entry_price,exit_price,stop_loss,target,exit_reason,rr,margin_usdt,net_return_pct_per_leg,paper_pnl_usdt
+LTCUSDT-BTC_SMC-1792300800000,LTCUSDT,BTC_SMC,SHORT,2026-10-18T05:20:00+00:00,2026-10-18T09:00:00+00:00,58.778242,59.241845999999995,59.23,56.971210000000006,STOP,4,100.0,-0.889128,-26.67
