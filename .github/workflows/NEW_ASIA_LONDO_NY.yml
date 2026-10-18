@@ -1,0 +1,53 @@
+name: NEW ASIA LONDO NY Paper Scanner
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 2 minutes after each 15m candle close (UTC). GitHub may delay runs.
+    - cron: '2,17,32,47 * * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: new-asia-londo-ny-paper
+  cancel-in-progress: false
+
+jobs:
+  paper-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependency
+        run: python -m pip install requests
+
+      - name: Run NEW ASIA LONDO NY scanner
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+        run: python NEW_ASIA_LONDO_NY.py
+
+      - name: Save paper state and trade history
+        if: always()
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f NEW_ASIA_LONDO_NY_state.json 2>/dev/null || true
+          git add -f NEW_ASIA_LONDO_NY_trades.csv 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No paper state/history changes"
+          else
+            git commit -m "Update NEW ASIA LONDO NY paper state and trades"
+            git push
+          fi
