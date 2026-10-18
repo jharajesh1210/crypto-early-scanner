@@ -12,7 +12,7 @@
       "locked_rr": 0,
       "entry_time_utc": "2026-10-18T04:50:00+00:00",
       "entry_t": 1792299000000,
-      "last_checked_t": 1792323000000,
+      "last_checked_t": 1792324200000,
       "margin_usdt": 100.0,
       "rr": 4,
       "id": "ZECUSDT-BTC_SMC-1792299000000",
@@ -30,7 +30,7 @@
       "locked_rr": 0,
       "entry_time_utc": "2026-10-18T04:40:00+00:00",
       "entry_t": 1792298400000,
-      "last_checked_t": 1792323000000,
+      "last_checked_t": 1792324200000,
       "margin_usdt": 100.0,
       "rr": 4,
       "id": "DOGEUSDT-BTC_SMC-1792298400000",
@@ -48,7 +48,7 @@
       "locked_rr": 0,
       "entry_time_utc": "2026-10-18T04:40:00+00:00",
       "entry_t": 1792298400000,
-      "last_checked_t": 1792323000000,
+      "last_checked_t": 1792324200000,
       "margin_usdt": 100.0,
       "rr": 4,
       "id": "LINKUSDT-BTC_SMC-1792298400000",
@@ -66,7 +66,7 @@
       "locked_rr": 0,
       "entry_time_utc": "2026-10-18T05:30:00+00:00",
       "entry_t": 1792301400000,
-      "last_checked_t": 1792323000000,
+      "last_checked_t": 1792324200000,
       "margin_usdt": 100.0,
       "rr": 4,
       "id": "HYPEUSDT-BTC_SMC-1792301400000",
@@ -84,7 +84,7 @@
       "locked_rr": 0,
       "entry_time_utc": "2026-10-18T09:20:00+00:00",
       "entry_t": 1792315200000,
-      "last_checked_t": 1792323000000,
+      "last_checked_t": 1792324200000,
       "margin_usdt": 100.0,
       "rr": 4,
       "id": "XRPUSDT-ASIAN_LONDON_NY-1792315200000",
@@ -102,7 +102,7 @@
       "locked_rr": 0,
       "entry_time_utc": "2026-10-18T09:20:00+00:00",
       "entry_t": 1792315200000,
-      "last_checked_t": 1792323000000,
+      "last_checked_t": 1792324200000,
       "margin_usdt": 100.0,
       "rr": 4,
       "id": "SOLUSDT-ASIAN_LONDON_NY-1792315200000",
@@ -120,7 +120,7 @@
       "locked_rr": 0,
       "entry_time_utc": "2026-10-18T09:20:00+00:00",
       "entry_t": 1792315200000,
-      "last_checked_t": 1792323000000,
+      "last_checked_t": 1792324200000,
       "margin_usdt": 100.0,
       "rr": 4,
       "id": "ZECUSDT-ASIAN_LONDON_NY-1792315200000",
@@ -138,7 +138,7 @@
       "locked_rr": 0,
       "entry_time_utc": "2026-10-18T09:20:00+00:00",
       "entry_t": 1792315200000,
-      "last_checked_t": 1792323000000,
+      "last_checked_t": 1792324200000,
       "margin_usdt": 100.0,
       "rr": 4,
       "id": "DOGEUSDT-ASIAN_LONDON_NY-1792315200000",
@@ -156,7 +156,7 @@
       "locked_rr": 0,
       "entry_time_utc": "2026-10-18T11:00:00+00:00",
       "entry_t": 1792321200000,
-      "last_checked_t": 1792323000000,
+      "last_checked_t": 1792324200000,
       "margin_usdt": 100.0,
       "rr": 4,
       "id": "ADAUSDT-ASIAN_LONDON_NY-1792321200000",
@@ -172,12 +172,71 @@
     "BCHUSDT": "2026-10-18"
   },
   "last_closed_bar": {
+    "BTCUSDT": 1792324200000,
+    "ETHUSDT": 1792324200000,
+    "SOLUSDT": 1792324200000,
+    "BNBUSDT": 1792324200000,
+    "XRPUSDT": 1792324200000,
+    "USDCUSDT": 1792324200000,
+    "TRXUSDT": 1792324200000,
+    "HYPEUSDT": 1792324200000,
+    "ZECUSDT": 1792324200000,
+    "DOGEUSDT": 1792324200000,
+    "XMRUSDT": 1792324200000,
+    "LINKUSDT": 1792324200000,
+    "ADAUSDT": 1792324200000,
+    "NEARUSDT": 1792324200000,
+    "XLMUSDT": 1792324200000,
+    "BCHUSDT": 1792324200000,
+    "LTCUSDT": 1792324200000
+  },
+  "smc_setup": {
+    "XMRUSDT": {
+      "side": "LONG",
+      "stage": "SWEEP",
+      "sweep_t": 1792322100000,
+      "extreme": 580.6,
+      "break_level": 587.66
+    },
+    "BTCUSDT": {
+      "side": "LONG",
+      "stage": "SWEEP",
+      "sweep_t": 1792324200000,
+      "extreme": 81985.7,
+      "break_level": 82122.7
+    },
+    "ETHUSDT": {
+      "side": "LONG",
+      "stage": "SWEEP",
+      "sweep_t": 1792324200000,
+      "extreme": 2413.89,
+      "break_level": 2421.0
+    },
+    "BNBUSDT": {
+      "side": "LONG",
+      "stage": "SWEEP",
+      "sweep_t": 1792323900000,
+      "extreme": 722.88,
+      "break_level": 724.67
+    }
+  },
+  "amc_pending": {
+    "BNBUSDT": {
+      "t": 1792323000000,
+      "side": "SHORT",
+      "sweep_high": 724.42,
+      "sweep_low": 723.06,
+      "stop": 724.42,
+      "poc": 722.9725000000001
+    }
+  },
+  "last_15m": {
     "BTCUSDT": 1792323000000,
     "ETHUSDT": 1792323000000,
-    "SOLUSDT": 1792323000000,
     "BNBUSDT": 1792323000000,
     "XRPUSDT": 1792323000000,
     "USDCUSDT": 1792323000000,
+    "SOLUSDT": 1792323000000,
     "TRXUSDT": 1792323000000,
     "HYPEUSDT": 1792323000000,
     "ZECUSDT": 1792323000000,
@@ -189,43 +248,5 @@
     "XLMUSDT": 1792323000000,
     "BCHUSDT": 1792323000000,
     "LTCUSDT": 1792323000000
-  },
-  "smc_setup": {
-    "XMRUSDT": {
-      "side": "LONG",
-      "stage": "SWEEP",
-      "sweep_t": 1792322100000,
-      "extreme": 580.6,
-      "break_level": 587.66
-    }
-  },
-  "amc_pending": {
-    "BNBUSDT": {
-      "t": 1792322100000,
-      "side": "SHORT",
-      "sweep_high": 724.67,
-      "sweep_low": 724.18,
-      "stop": 724.67,
-      "poc": 722.9725000000001
-    }
-  },
-  "last_15m": {
-    "BTCUSDT": 1792322100000,
-    "ETHUSDT": 1792322100000,
-    "BNBUSDT": 1792322100000,
-    "XRPUSDT": 1792322100000,
-    "USDCUSDT": 1792322100000,
-    "SOLUSDT": 1792322100000,
-    "TRXUSDT": 1792322100000,
-    "HYPEUSDT": 1792322100000,
-    "ZECUSDT": 1792322100000,
-    "DOGEUSDT": 1792322100000,
-    "XMRUSDT": 1792322100000,
-    "LINKUSDT": 1792322100000,
-    "ADAUSDT": 1792322100000,
-    "NEARUSDT": 1792322100000,
-    "XLMUSDT": 1792322100000,
-    "BCHUSDT": 1792322100000,
-    "LTCUSDT": 1792322100000
   }
 }
