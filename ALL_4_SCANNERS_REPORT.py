@@ -1,4 +1,4 @@
-"""Cumulative paper P/L for six scanners, with independent HYBRID breakdown.
+"""Cumulative paper P/L for four scanners, with independent HYBRID breakdown.
 Run from repository root. Python standard library only.
 Existing history is read-only; this script only writes the summary report.
 """
@@ -14,9 +14,7 @@ OUTPUT = Path('ALL_4_SCANNERS_PROFIT_LOSS.csv')
 HYBRID_FILE = 'HYBRID_SMC_AMC_SESSION_PAPER_trades.csv'
 SCANNERS = [
     ('BTC_SMC_Paper', 'BTC_SMC_Paper_trades.csv', 'net_pct'),
-    ('100AND BTC SMC Paper Scanner', '100AND_BTC_paper_trades.csv', 'net_pct'),
     ('TOP100 CRIPTO AMC POC Paper Scanner', 'TOP100_CRIPTO_AMC_POC_trades.csv', 'net_return_pct_per_leg'),
-    ('NEW TOP100 AMD POC 1H Paper', 'TOP100_AMD_POC_1H_PAPER_trades.csv', 'net_return_pct_per_leg'),
     ('ASIAN LONDON NY PAPER', 'ASIAN_LONDON_NY_PAPER_trades.csv', 'net_return_pct_per_leg'),
     ('HYBRID SMC AMC SESSION Paper', HYBRID_FILE, 'net_return_pct_per_leg'),
 ]
@@ -142,7 +140,7 @@ def main():
     total = dict.fromkeys(FIELDS, '')
     total.update(
         Scanner='TOTAL (available histories)',
-        Status=f'ALL 6 AVAILABLE' if available == 6 else f'PARTIAL: {available}/6 available',
+        Status=f'ALL {len(SCANNERS)} AVAILABLE' if available == len(SCANNERS) else f'PARTIAL: {available}/{len(SCANNERS)} available',
         Closed_Legs=count, Winning_Legs=wins, Losing_Legs=losses,
         **{'Win_Rate_%': str((Decimal(wins) * 100 / count).quantize(Decimal('0.01'))) if count else ''},
         Total_Profit_USDT=money(profit) if count else '',
