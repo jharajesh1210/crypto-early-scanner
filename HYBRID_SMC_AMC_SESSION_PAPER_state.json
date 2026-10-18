@@ -2,135 +2,161 @@
   "positions": [],
   "entered_days": {},
   "last_closed_bar": {
-    "BTCUSDT": 1792294200000,
-    "ETHUSDT": 1792294200000,
-    "SOLUSDT": 1792294200000,
-    "BNBUSDT": 1792294200000,
-    "XRPUSDT": 1792294200000,
-    "USDCUSDT": 1792294200000,
-    "TRXUSDT": 1792294200000,
-    "HYPEUSDT": 1792294200000,
-    "ZECUSDT": 1792294200000,
-    "DOGEUSDT": 1792294200000,
-    "XMRUSDT": 1792294200000,
-    "LINKUSDT": 1792294200000,
-    "ADAUSDT": 1792294200000,
-    "NEARUSDT": 1792294200000,
-    "XLMUSDT": 1792294200000,
-    "BCHUSDT": 1792294200000,
-    "LTCUSDT": 1792294200000
+    "BTCUSDT": 1792296000000,
+    "ETHUSDT": 1792296000000,
+    "SOLUSDT": 1792296000000,
+    "BNBUSDT": 1792296000000,
+    "XRPUSDT": 1792296000000,
+    "USDCUSDT": 1792296000000,
+    "TRXUSDT": 1792296000000,
+    "HYPEUSDT": 1792296000000,
+    "ZECUSDT": 1792296000000,
+    "DOGEUSDT": 1792296000000,
+    "XMRUSDT": 1792296000000,
+    "LINKUSDT": 1792296000000,
+    "ADAUSDT": 1792296000000,
+    "NEARUSDT": 1792296000000,
+    "XLMUSDT": 1792296000000,
+    "BCHUSDT": 1792296000000,
+    "LTCUSDT": 1792296000000
   },
   "smc_setup": {
     "BTCUSDT": {
       "side": "SHORT",
       "stage": "SWEEP",
-      "sweep_t": 1792293300000,
-      "extreme": 81904.6,
-      "break_level": 81678.2
+      "sweep_t": 1792295700000,
+      "extreme": 81936.0,
+      "break_level": 81740.0
+    },
+    "ETHUSDT": {
+      "side": "SHORT",
+      "stage": "SWEEP",
+      "sweep_t": 1792295400000,
+      "extreme": 2426.7,
+      "break_level": 2404.21
+    },
+    "BNBUSDT": {
+      "side": "SHORT",
+      "stage": "SWEEP",
+      "sweep_t": 1792295400000,
+      "extreme": 723.47,
+      "break_level": 721.63
     },
     "XRPUSDT": {
       "side": "SHORT",
       "stage": "SWEEP",
-      "sweep_t": 1792293300000,
-      "extreme": 1.3012,
-      "break_level": 1.2948
+      "sweep_t": 1792296000000,
+      "extreme": 1.3033,
+      "break_level": 1.2968
     },
-    "SOLUSDT": {
+    "HYPEUSDT": {
       "side": "SHORT",
       "stage": "SWEEP",
-      "sweep_t": 1792293300000,
-      "extreme": 104.17,
-      "break_level": 103.3
+      "sweep_t": 1792296000000,
+      "extreme": 79.369,
+      "break_level": 78.852
+    },
+    "ZECUSDT": {
+      "side": "SHORT",
+      "stage": "SWEEP",
+      "sweep_t": 1792295100000,
+      "extreme": 1156.43,
+      "break_level": 1142.0
+    },
+    "DOGEUSDT": {
+      "side": "SHORT",
+      "stage": "SWEEP",
+      "sweep_t": 1792295700000,
+      "extreme": 0.07986,
+      "break_level": 0.0795
+    },
+    "XMRUSDT": {
+      "side": "SHORT",
+      "stage": "SWEEP",
+      "sweep_t": 1792296000000,
+      "extreme": 609.09,
+      "break_level": 596.7
+    },
+    "LINKUSDT": {
+      "side": "SHORT",
+      "stage": "SWEEP",
+      "sweep_t": 1792295400000,
+      "extreme": 12.072,
+      "break_level": 12.006
     },
     "ADAUSDT": {
       "side": "SHORT",
       "stage": "SWEEP",
-      "sweep_t": 1792293300000,
-      "extreme": 0.2215,
-      "break_level": 0.2191
+      "sweep_t": 1792295700000,
+      "extreme": 0.2217,
+      "break_level": 0.2203
     },
     "XLMUSDT": {
       "side": "SHORT",
       "stage": "SWEEP",
-      "sweep_t": 1792293300000,
-      "extreme": 0.17841,
-      "break_level": 0.17741
+      "sweep_t": 1792295400000,
+      "extreme": 0.17868,
+      "break_level": 0.17753
     },
-    "BCHUSDT": {
+    "LTCUSDT": {
       "side": "SHORT",
       "stage": "SWEEP",
-      "sweep_t": 1792293300000,
-      "extreme": 278.01,
-      "break_level": 275.29
+      "sweep_t": 1792296000000,
+      "extreme": 59.23,
+      "break_level": 58.94
     }
   },
   "amc_pending": {
-    "BTCUSDT": {
-      "t": 1792293300000,
+    "XRPUSDT": {
+      "t": 1792295100000,
       "side": "SHORT",
-      "sweep_high": 81904.6,
-      "sweep_low": 81740.0,
-      "stop": 81904.6,
-      "poc": 81666.55833333333
+      "sweep_high": 1.3048,
+      "sweep_low": 1.3018,
+      "stop": 1.3048,
+      "poc": 1.2982405555555556
     },
-    "ETHUSDT": {
-      "t": 1792293300000,
+    "DOGEUSDT": {
+      "t": 1792295100000,
       "side": "SHORT",
-      "sweep_high": 2423.24,
-      "sweep_low": 2416.38,
-      "stop": 2423.24,
-      "poc": 2410.570111111111
+      "sweep_high": 0.08,
+      "sweep_low": 0.07978,
+      "stop": 0.08,
+      "poc": 0.07944466666666666
     },
-    "BNBUSDT": {
-      "t": 1792293300000,
+    "ADAUSDT": {
+      "t": 1792295100000,
       "side": "SHORT",
-      "sweep_high": 723.21,
-      "sweep_low": 721.67,
-      "stop": 723.21,
-      "poc": 718.4203333333332
-    },
-    "TRXUSDT": {
-      "t": 1792293300000,
-      "side": "LONG",
-      "sweep_high": 0.3332,
-      "sweep_low": 0.33306,
-      "stop": 0.33306,
-      "poc": 0.3334672777777778
-    },
-    "LINKUSDT": {
-      "t": 1792293300000,
-      "side": "SHORT",
-      "sweep_high": 12.053,
-      "sweep_low": 12.006,
-      "stop": 12.053,
-      "poc": 11.987177777777779
+      "sweep_high": 0.2219,
+      "sweep_low": 0.2212,
+      "stop": 0.2219,
+      "poc": 0.2202788888888889
     },
     "BCHUSDT": {
-      "t": 1792293300000,
+      "t": 1792295100000,
       "side": "SHORT",
-      "sweep_high": 278.01,
-      "sweep_low": 276.71,
-      "stop": 278.01,
+      "sweep_high": 278.08,
+      "sweep_low": 276.99,
+      "stop": 278.08,
       "poc": 276.2658333333333
     }
   },
   "last_15m": {
-    "BTCUSDT": 1792293300000,
-    "ETHUSDT": 1792293300000,
-    "BNBUSDT": 1792293300000,
-    "XRPUSDT": 1792293300000,
-    "USDCUSDT": 1792293300000,
-    "SOLUSDT": 1792293300000,
-    "TRXUSDT": 1792293300000,
-    "HYPEUSDT": 1792293300000,
-    "ZECUSDT": 1792293300000,
-    "DOGEUSDT": 1792293300000,
-    "XMRUSDT": 1792293300000,
-    "LINKUSDT": 1792293300000,
-    "ADAUSDT": 1792293300000,
-    "NEARUSDT": 1792293300000,
-    "XLMUSDT": 1792293300000,
-    "BCHUSDT": 1792293300000,
-    "LTCUSDT": 1792293300000
+    "BTCUSDT": 1792295100000,
+    "ETHUSDT": 1792295100000,
+    "BNBUSDT": 1792295100000,
+    "XRPUSDT": 1792295100000,
+    "USDCUSDT": 1792295100000,
+    "SOLUSDT": 1792295100000,
+    "TRXUSDT": 1792295100000,
+    "HYPEUSDT": 1792295100000,
+    "ZECUSDT": 1792295100000,
+    "DOGEUSDT": 1792295100000,
+    "XMRUSDT": 1792295100000,
+    "LINKUSDT": 1792295100000,
+    "ADAUSDT": 1792295100000,
+    "NEARUSDT": 1792295100000,
+    "XLMUSDT": 1792295100000,
+    "BCHUSDT": 1792295100000,
+    "LTCUSDT": 1792295100000
   }
 }
