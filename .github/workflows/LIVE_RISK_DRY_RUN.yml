@@ -1,0 +1,72 @@
+name: LIVE Risk DRY RUN (no real orders)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '2,7,12,17,22,27,32,37,42,47,52,57 * * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: live-risk-dry-run
+  cancel-in-progress: false
+
+jobs:
+  paper_only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install market data dependency
+        run: python -m pip install requests
+      - name: Validate safety config
+        run: python LIVE_RISK_CONTROLLER.py
+      - name: Read existing scanner signals (no scanner execution)
+        run: python LIVE_SIGNAL_ADAPTER.py signals
+      - name: Simulate existing positions using completed candles
+        run: |
+          python LIVE_SIGNAL_ADAPTER.py prices
+          python LIVE_RISK_CONTROLLER.py --prices LIVE_PRICES.jsonl
+      - name: Evaluate fresh signals with risk rules
+        run: python LIVE_RISK_CONTROLLER.py --signals LIVE_SIGNALS.jsonl
+      - name: Save controller state and paper results
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for f in LIVE_RISK_STATE.json LIVE_RISK_DECISIONS.csv LIVE_RISK_TRADES.csv; do
+            if [ -f "$f" ]; then git add -f "$f"; fi
+          done
+          if git diff --cached --quiet; then echo 'No new dry-run changes'; exit 0; fi
+          git commit -m 'Update LIVE dry-run paper results'
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            if ! git rebase origin/main; then
+              git rebase --abort || true
+              echo 'State conflict: manual review needed; no force push'
+              exit 1
+            fi
+            if git push origin HEAD:main; then exit 0; fi
+            sleep 4
+          done
+          echo 'Failed to persist state; stop and review before rerun'
+          exit 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: live-risk-dry-run-${{ github.run_id }}
+          path: |
+            LIVE_RISK_STATE.json
+            LIVE_RISK_DECISIONS.csv
+            LIVE_RISK_TRADES.csv
+            LIVE_SIGNALS.jsonl
+            LIVE_PRICES.jsonl
+          if-no-files-found: warn
+          retention-days: 30
