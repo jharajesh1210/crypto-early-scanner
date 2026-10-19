@@ -1,20 +1,12 @@
 {
   "last_bar": {
-    "BTCUSDT": 1792420200000,
-    "ETHUSDT": 1792420200000,
-    "SOLUSDT": 1792420200000,
-    "BNBUSDT": 1792420200000,
-    "XAUUSDT": 1792420200000
+    "BTCUSDT": 1792422900000,
+    "ETHUSDT": 1792422900000,
+    "SOLUSDT": 1792422900000,
+    "BNBUSDT": 1792422900000,
+    "XAUUSDT": 1792422900000
   },
   "setups": {
-    "BTCUSDT:LONDON": {
-      "stage": "SWEEP",
-      "side": "LONG",
-      "day": "2026-10-19",
-      "sweep_t": 1792418400000,
-      "extreme": 81724.0,
-      "break_level": 82744.0
-    },
     "BTCUSDT:NEW_YORK": {
       "stage": "SWEEP",
       "side": "LONG",
@@ -23,13 +15,21 @@
       "extreme": 81724.0,
       "break_level": 82744.0
     },
-    "SOLUSDT:LONDON": {
+    "SOLUSDT:NEW_YORK": {
       "stage": "SWEEP",
       "side": "LONG",
       "day": "2026-10-19",
-      "sweep_t": 1792418400000,
-      "extreme": 103.45,
+      "sweep_t": 1792421100000,
+      "extreme": 104.0,
       "break_level": 105.57
+    },
+    "BNBUSDT:NEW_YORK": {
+      "stage": "SWEEP",
+      "side": "SHORT",
+      "day": "2026-10-19",
+      "sweep_t": 1792421100000,
+      "extreme": 731.24,
+      "break_level": 725.07
     }
   },
   "positions": {},
