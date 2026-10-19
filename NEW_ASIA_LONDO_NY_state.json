@@ -1,28 +1,12 @@
 {
   "last_bar": {
-    "BTCUSDT": 1792424700000,
-    "ETHUSDT": 1792424700000,
-    "SOLUSDT": 1792424700000,
-    "BNBUSDT": 1792424700000,
-    "XAUUSDT": 1792424700000
+    "BTCUSDT": 1792427400000,
+    "ETHUSDT": 1792427400000,
+    "SOLUSDT": 1792427400000,
+    "BNBUSDT": 1792427400000,
+    "XAUUSDT": 1792427400000
   },
   "setups": {
-    "BTCUSDT:NEW_YORK": {
-      "stage": "SWEEP",
-      "side": "LONG",
-      "day": "2026-10-19",
-      "sweep_t": 1792418400000,
-      "extreme": 81724.0,
-      "break_level": 82744.0
-    },
-    "SOLUSDT:NEW_YORK": {
-      "stage": "SWEEP",
-      "side": "LONG",
-      "day": "2026-10-19",
-      "sweep_t": 1792421100000,
-      "extreme": 104.0,
-      "break_level": 105.57
-    },
     "BNBUSDT:NEW_YORK": {
       "stage": "SWEEP",
       "side": "SHORT",
