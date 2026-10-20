@@ -1,3 +1,4 @@
+
 {
   "mode": "DRY_RUN",
   "live_orders_enabled": false,
@@ -16,7 +17,7 @@
   "max_daily_loss_usdt": 10,
   "estimated_fee_rate_per_side": 0.0005,
   "estimated_slippage_rate_per_side": 0.0002,
-  "max_signal_age_seconds": 120,
+  "max_signal_age_seconds": 600,
   "initial_stop_loss_r": -1,
   "move_stop_at_2r": 2,
   "new_stop_at_2r": 2,
