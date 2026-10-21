@@ -1,42 +1,6 @@
 {
   "positions": [
     {
-      "symbol": "ETHUSDT",
-      "direction": "SELL",
-      "leg": "2R",
-      "entry": 2449.2,
-      "stop": 2465.98,
-      "initial_stop": 2465.98,
-      "target": 2415.6399999999994,
-      "risk": 16.7800000000002,
-      "entry_time_utc": "2026-10-21T10:25+00:00",
-      "last_checked_t": 1792581000000
-    },
-    {
-      "symbol": "ETHUSDT",
-      "direction": "SELL",
-      "leg": "3R",
-      "entry": 2449.2,
-      "stop": 2465.98,
-      "initial_stop": 2465.98,
-      "target": 2398.859999999999,
-      "risk": 16.7800000000002,
-      "entry_time_utc": "2026-10-21T10:25+00:00",
-      "last_checked_t": 1792581000000
-    },
-    {
-      "symbol": "ETHUSDT",
-      "direction": "SELL",
-      "leg": "4R",
-      "entry": 2449.2,
-      "stop": 2465.98,
-      "initial_stop": 2465.98,
-      "target": 2382.079999999999,
-      "risk": 16.7800000000002,
-      "entry_time_utc": "2026-10-21T10:25+00:00",
-      "last_checked_t": 1792581000000
-    },
-    {
       "symbol": "SOLUSDT",
       "direction": "SELL",
       "leg": "2R",
@@ -46,7 +10,7 @@
       "target": 103.81,
       "risk": 1.1400000000000006,
       "entry_time_utc": "2026-10-21T10:10+00:00",
-      "last_checked_t": 1792581000000
+      "last_checked_t": 1792583100000
     },
     {
       "symbol": "SOLUSDT",
@@ -58,7 +22,7 @@
       "target": 102.67,
       "risk": 1.1400000000000006,
       "entry_time_utc": "2026-10-21T10:10+00:00",
-      "last_checked_t": 1792581000000
+      "last_checked_t": 1792583100000
     },
     {
       "symbol": "SOLUSDT",
@@ -70,43 +34,7 @@
       "target": 101.53,
       "risk": 1.1400000000000006,
       "entry_time_utc": "2026-10-21T10:10+00:00",
-      "last_checked_t": 1792581000000
-    },
-    {
-      "symbol": "BNBUSDT",
-      "direction": "SELL",
-      "leg": "2R",
-      "entry": 746.3,
-      "stop": 748.8,
-      "initial_stop": 748.8,
-      "target": 741.3,
-      "risk": 2.5,
-      "entry_time_utc": "2026-10-21T10:25+00:00",
-      "last_checked_t": 1792581000000
-    },
-    {
-      "symbol": "BNBUSDT",
-      "direction": "SELL",
-      "leg": "3R",
-      "entry": 746.3,
-      "stop": 748.8,
-      "initial_stop": 748.8,
-      "target": 738.8,
-      "risk": 2.5,
-      "entry_time_utc": "2026-10-21T10:25+00:00",
-      "last_checked_t": 1792581000000
-    },
-    {
-      "symbol": "BNBUSDT",
-      "direction": "SELL",
-      "leg": "4R",
-      "entry": 746.3,
-      "stop": 748.8,
-      "initial_stop": 748.8,
-      "target": 736.3,
-      "risk": 2.5,
-      "entry_time_utc": "2026-10-21T10:25+00:00",
-      "last_checked_t": 1792581000000
+      "last_checked_t": 1792583100000
     }
   ],
   "entered_days": {
@@ -115,9 +43,9 @@
     "BNBUSDT": "2026-10-21"
   },
   "last_closed_bar": {
-    "BTCUSDT": 1792581000000,
-    "ETHUSDT": 1792581000000,
-    "SOLUSDT": 1792581000000,
-    "BNBUSDT": 1792581000000
+    "BTCUSDT": 1792583100000,
+    "ETHUSDT": 1792583100000,
+    "SOLUSDT": 1792583100000,
+    "BNBUSDT": 1792583100000
   }
 }
