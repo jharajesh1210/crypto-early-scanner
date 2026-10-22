@@ -1,0 +1,2 @@
+checked_utc,signal_id,scanner,symbol,side,status,reason,entry,stop_loss,target_2r,target_3r,target_4r,quantity,margin_usdt,notional_usdt,estimated_risk_usdt
+2026-10-22T01:54:17.074434+00:00,TOP100_CRIPTO_AMC_POC:JUPUSDT:B-JUP_USDT-2026-10-22T01:45:00+00:00-TRAIL-RR4,TOP100_CRIPTO_AMC_POC,JUPUSDT,SHORT,REJECTED,Risk 1.3824 > per-trade limit,,,,,,,,,
