@@ -1,0 +1,3 @@
+time_utc,scanner,symbol,side,reason
+2026-10-23T10:17:55.709756+00:00,TOP100_CRIPTO_AMC_POC_NEWS_IMPACT,B-XRP_USDT,LONG,Extra-events data unverified: Extra-events feed not configured; provide EXTRA_EVENTS_URL or a fresh EXTRA_NEWS_EVENTS.json
+2026-10-23T10:18:00.287360+00:00,TOP100_CRIPTO_AMC_POC_NEWS_IMPACT,B-NEAR_USDT,LONG,Extra-events data unverified: Extra-events feed not configured; provide EXTRA_EVENTS_URL or a fresh EXTRA_NEWS_EVENTS.json
