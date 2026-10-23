@@ -1,0 +1,66 @@
+
+name: TOP100 NEWS IMPACT V2 PAPER
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "3,18,33,48 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: top100-news-impact-v2
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests pandas numpy
+
+      - name: Verify Python files
+        run: |
+          test -f TOP100_CRIPTO_AMC_POC_NEWS_IMPACT.py
+          test -f NEWS_IMPACT_ENGINE.py
+          python -m py_compile TOP100_CRIPTO_AMC_POC_NEWS_IMPACT.py NEWS_IMPACT_ENGINE.py
+
+      - name: Run TOP100 News Impact scanner
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+          NEWS_CALENDAR_URL: ${{ secrets.NEWS_CALENDAR_URL }}
+        run: |
+          python TOP100_CRIPTO_AMC_POC_NEWS_IMPACT.py
+
+      - name: Save paper trading files
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add \
+            TOP100_CRIPTO_AMC_POC_NEWS_IMPACT_state.json \
+            TOP100_CRIPTO_AMC_POC_NEWS_IMPACT_trades.csv \
+            TOP100_CRIPTO_AMC_POC_NEWS_IMPACT_signals.csv \
+            TOP100_CRIPTO_AMC_POC_NEWS_IMPACT_universe.csv \
+            TOP100_CRIPTO_AMC_POC_NEWS_IMPACT_news_skips.csv \
+            2>/dev/null || true
+
+          if ! git diff --cached --quiet; then
+            git commit -m "Update TOP100 News Impact V2 paper results"
+            git push
+          fi
