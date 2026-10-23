@@ -1,3 +1,10 @@
 time_utc,scanner,symbol,side,reason
 2026-10-23T10:17:55.709756+00:00,TOP100_CRIPTO_AMC_POC_NEWS_IMPACT,B-XRP_USDT,LONG,Extra-events data unverified: Extra-events feed not configured; provide EXTRA_EVENTS_URL or a fresh EXTRA_NEWS_EVENTS.json
 2026-10-23T10:18:00.287360+00:00,TOP100_CRIPTO_AMC_POC_NEWS_IMPACT,B-NEAR_USDT,LONG,Extra-events data unverified: Extra-events feed not configured; provide EXTRA_EVENTS_URL or a fresh EXTRA_NEWS_EVENTS.json
+2026-10-23T11:34:41.011621+00:00,TOP100_CRIPTO_AMC_POC_NEWS_IMPACT,B-SOL_USDT,LONG,Extra-events data unverified: Extra-events feed not configured; provide EXTRA_EVENTS_URL or a fresh EXTRA_NEWS_EVENTS.json
+2026-10-23T11:34:44.215916+00:00,TOP100_CRIPTO_AMC_POC_NEWS_IMPACT,B-HYPE_USDT,LONG,Extra-events data unverified: Extra-events feed not configured; provide EXTRA_EVENTS_URL or a fresh EXTRA_NEWS_EVENTS.json
+2026-10-23T11:34:45.307958+00:00,TOP100_CRIPTO_AMC_POC_NEWS_IMPACT,B-DOGE_USDT,LONG,Extra-events data unverified: Extra-events feed not configured; provide EXTRA_EVENTS_URL or a fresh EXTRA_NEWS_EVENTS.json
+2026-10-23T11:34:47.751860+00:00,TOP100_CRIPTO_AMC_POC_NEWS_IMPACT,B-LINK_USDT,LONG,Extra-events data unverified: Extra-events feed not configured; provide EXTRA_EVENTS_URL or a fresh EXTRA_NEWS_EVENTS.json
+2026-10-23T11:34:53.409313+00:00,TOP100_CRIPTO_AMC_POC_NEWS_IMPACT,B-SUI_USDT,LONG,Extra-events data unverified: Extra-events feed not configured; provide EXTRA_EVENTS_URL or a fresh EXTRA_NEWS_EVENTS.json
+2026-10-23T11:34:55.295827+00:00,TOP100_CRIPTO_AMC_POC_NEWS_IMPACT,B-TAO_USDT,LONG,Extra-events data unverified: Extra-events feed not configured; provide EXTRA_EVENTS_URL or a fresh EXTRA_NEWS_EVENTS.json
+2026-10-23T11:34:58.706205+00:00,TOP100_CRIPTO_AMC_POC_NEWS_IMPACT,B-AAVE_USDT,LONG,Extra-events data unverified: Extra-events feed not configured; provide EXTRA_EVENTS_URL or a fresh EXTRA_NEWS_EVENTS.json
