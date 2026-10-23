@@ -1,14 +1,21 @@
 {
-  "last_bar": 1792761000000,
-  "setup": {
-    "side": "LONG",
-    "stage": "CHOCH",
-    "sweep_time": 1792757700000,
-    "extreme": 81411.0,
-    "break_level": 81745.7,
-    "choch_time": 1792758900000
-  },
-  "positions": [],
+  "last_bar": 1792763100000,
+  "setup": null,
+  "positions": [
+    {
+      "side": "LONG",
+      "rr": 4,
+      "entry": 81745.9,
+      "stop": 81411.0,
+      "initial_stop": 81411.0,
+      "initial_risk": 334.8999999999942,
+      "target": 83085.49999999997,
+      "entry_time": 1792762200000,
+      "trade_mode": "SINGLE_TRAIL_4R",
+      "max_rr_reached": 0,
+      "margin_usdt": 100.0
+    }
+  ],
   "closed": 7,
   "wins": 5,
   "losses": 2,
