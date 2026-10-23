@@ -23,5 +23,7 @@
     "ASIAN_LONDON_NY_PAPER:SOLUSDT:SOLUSDT:2026-10-23T10:05:00Z"
   ],
   "realized_by_day": {},
-  "last_price_time": {}
+  "last_price_time": {
+    "SOLUSDT": "2026-10-23T10:50:00+00:00"
+  }
 }
