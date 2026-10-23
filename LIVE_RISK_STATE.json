@@ -16,23 +16,6 @@
       "target_2r": 103.06000000000002,
       "target_3r": 102.46000000000002,
       "target_4r": 101.86000000000003
-    },
-    "BNBUSDT": {
-      "signal_id": "ASIAN_LONDON_NY_PAPER:BNBUSDT:BNBUSDT:2026-10-23T11:10:00Z",
-      "scanner": "ASIAN_LONDON_NY_PAPER",
-      "symbol": "BNBUSDT",
-      "side": "SHORT",
-      "entry": 745.46,
-      "initial_stop": 748.13,
-      "current_stop": 748.13,
-      "risk_distance": 2.669999999999959,
-      "quantity": 0.16768169989000078,
-      "estimated_risk_usdt": 0.6227101387062952,
-      "locked_r": 0,
-      "opened_utc": "2026-10-23T11:17:49.651836+00:00",
-      "target_2r": 740.1200000000001,
-      "target_3r": 737.4500000000002,
-      "target_4r": 734.7800000000002
     }
   },
   "seen_ids": [
@@ -40,9 +23,11 @@
     "ASIAN_LONDON_NY_PAPER:SOLUSDT:SOLUSDT:2026-10-23T10:05:00Z",
     "ASIAN_LONDON_NY_PAPER:BNBUSDT:BNBUSDT:2026-10-23T11:10:00Z"
   ],
-  "realized_by_day": {},
+  "realized_by_day": {
+    "2026-10-23": -0.59803608
+  },
   "last_price_time": {
-    "SOLUSDT": "2026-10-23T11:50:00+00:00",
-    "BNBUSDT": "2026-10-23T11:50:00+00:00"
+    "SOLUSDT": "2026-10-23T12:15:00+00:00",
+    "BNBUSDT": "2026-10-23T12:00:00+00:00"
   }
 }
