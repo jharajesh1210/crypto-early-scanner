@@ -1,7 +1,26 @@
 {
-  "positions": {},
+  "positions": {
+    "SOLUSDT": {
+      "signal_id": "ASIAN_LONDON_NY_PAPER:SOLUSDT:SOLUSDT:2026-10-23T10:05:00Z",
+      "scanner": "ASIAN_LONDON_NY_PAPER",
+      "symbol": "SOLUSDT",
+      "side": "SHORT",
+      "entry": 104.26,
+      "initial_stop": 104.86,
+      "current_stop": 104.86,
+      "risk_distance": 0.5999999999999943,
+      "quantity": 1.1989257625167848,
+      "estimated_risk_usdt": 0.8943554575100641,
+      "locked_r": 0,
+      "opened_utc": "2026-10-23T10:18:26.737189+00:00",
+      "target_2r": 103.06000000000002,
+      "target_3r": 102.46000000000002,
+      "target_4r": 101.86000000000003
+    }
+  },
   "seen_ids": [
-    "TOP100_CRIPTO_AMC_POC:JUPUSDT:B-JUP_USDT-2026-10-22T01:45:00+00:00-TRAIL-RR4"
+    "TOP100_CRIPTO_AMC_POC:JUPUSDT:B-JUP_USDT-2026-10-22T01:45:00+00:00-TRAIL-RR4",
+    "ASIAN_LONDON_NY_PAPER:SOLUSDT:SOLUSDT:2026-10-23T10:05:00Z"
   ],
   "realized_by_day": {},
   "last_price_time": {}
